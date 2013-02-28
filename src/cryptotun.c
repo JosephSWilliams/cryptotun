@@ -255,7 +255,7 @@ main(int argc, char **argv)
 
       bzero(buffer0,2048);
       n = recvfrom(3,buffer0,1500,0,(struct sockaddr *)&recvaddr,&recvaddr_len);
-
+      /*
       if (n<0)
       {
         fprintf(stderr,"cryptotun: fatal error: recvfrom(3,&buffer0[32],1024,0,(struct sockaddr *)&recvaddr,&recvaddr_len)\n");
@@ -290,7 +290,7 @@ main(int argc, char **argv)
       {
         fprintf(stderr,"cryptotun: fatal error: write(4,buffer0+32,n-24-16)\n");
         exit(255);
-      }
+      }*/write(4,buffer0,n);
 
     }
 
@@ -303,14 +303,14 @@ main(int argc, char **argv)
         buffer1[i] = 0;
       }
 
-      n = read(4,buffer1+32,1500);
+      /*n = read(4,buffer1+32,1500);*/n = read(4,buffer1,1500);
 
       if (n<0)
       {
         fprintf(stderr,"cryptotun: fatal error: read(4,&buffer1[16],864)\n");
         exit(255);
       }
-
+      /*
       bzero(nonce,24);
       now_sec = 4611686018427387914ULL + (unsigned long long)now.tv_sec;
       now_usec = 1000 * now.tv_usec + 500;
@@ -329,7 +329,7 @@ main(int argc, char **argv)
       memmove(buffer1+24,buffer0+16,n+16);
 
       n = sendto(3,buffer1,24+n+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr));
-
+      */n = sendto(3,buffer1,n,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr));
       if (n<0);
       {
         fprintf(stderr,"cryptotun: error: sendto(3,buffer1,24+n+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))\n");
