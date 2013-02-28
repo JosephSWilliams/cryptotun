@@ -219,11 +219,11 @@ main(int argc, char **argv)
 
   struct pollfd fds[2];
   fds[0].fd = 3;
-  fds[0].events = POLLIN | POLLPRI;
-  fds[0].revents = 3;
+  fds[0].events = POLLIN;
+  fds[0].revents = POLLIN;
   fds[1].fd = 4;
-  fds[1].events = POLLIN | POLLPRI;
-  fds[1].revents = 3;
+  fds[1].events = POLLIN;
+  fds[1].revents = POLLIN;
 
   while (1)
   {
@@ -253,7 +253,7 @@ main(int argc, char **argv)
     if (now.tv_sec - ping >= 16)
     {
 
-      for (i=0;i<2048;++i)
+      for (i=0;i<32;++i)
       {
         buffer0[i] = 0;
         buffer1[i] = 0;
@@ -261,8 +261,8 @@ main(int argc, char **argv)
 
       now_sec = 4611686018427387914ULL + (unsigned long long)now.tv_sec;
       now_usec = 1000 * now.tv_usec + 500;
-      l = 8; for (i=0;i<8;++i) nonce[i] = now_sec >> (unsigned long long)(8 * --l);
-      l = 8; for (i=8;i<12;++i) nonce[i] = now_usec >> (unsigned long)(8 * --l); /* gcc -O3 will break nano */
+      l = 8; for (i=0;i<8;++i) nonce[i] = now_sec >> (unsigned long long)(--l << 3);
+      l = 8; for (i=8;i<12;++i) nonce[i] = now_usec >> (unsigned long)(--l << 3); /* gcc -O3 will break nano */
       for (i=12;i<16;++i) nonce[i] = 0;
       randombytes(nonce+16,8);
 
@@ -272,7 +272,7 @@ main(int argc, char **argv)
         exit(255);
       }
 
-      bzero(buffer1,2048);
+      bzero(buffer1,16);
       memmove(buffer1,nonce,24);
       memmove(buffer1+24,buffer0+16,32+16);
 
@@ -285,10 +285,9 @@ main(int argc, char **argv)
 
     }
 
-    if ((poll(&fds[0],1,512-(poll(&fds[1],1,0)*512))>0))
+    if (poll(&fds[0],1,0)>0)
     {
 
-      bzero(buffer0,2048);
       n = recvfrom(3,buffer0,1500,0,(struct sockaddr *)&recvaddr,&recvaddr_len);
 
       if (n<0)
@@ -307,13 +306,13 @@ main(int argc, char **argv)
 
       now_sec = 4611686018427387914ULL + (unsigned long long)now.tv_sec;
       sec = 0ULL;
-      l = 8; for (i=0;i<8;++i) sec += (unsigned long long)nonce[i] << (unsigned long long)(8 * --l);
+      l = 8; for (i=0;i<8;++i) sec += (unsigned long long)nonce[i] << (unsigned long long)(--l << 3);
       if ( (sec>now_sec) && ( (sec-now_sec) > 128ULL) ) continue;
       if ( (now_sec>sec) && ( (now_sec-sec) > 128ULL) ) continue;
 
-      bzero(buffer1,2048);
+      bzero(buffer1,16);
       memmove(buffer1+16,buffer0+24,-24+n);
-      bzero(buffer0,2048);
+      bzero(buffer0,32);
 
 //      if (crypto_box_open(buffer0,buffer1,16+-24+n,nonce,remotelongtermpk,longtermsk)<0) continue;
 
@@ -337,15 +336,15 @@ main(int argc, char **argv)
 
       } if (n==24+32+16) continue;
 
-      bzero(buffer1,2048);
+      bzero(buffer1,16);
       memmove(nonce,buffer0+32+32,24);
       memmove(buffer1+16,buffer0+32+32+24,-24-32-24+n-16);
-      bzero(buffer0,2048);
+      bzero(buffer0,32);
 
       if (crypto_box_open_afternm(buffer0,buffer1,16+-24-32-24+n-16,nonce,shorttermsharedk)<0)
       {
 
-        for (i=0;i<2048;++i)
+        for (i=0;i<32;++i)
         {
           buffer0[i] = 0;
           buffer1[i] = 0;
@@ -353,8 +352,8 @@ main(int argc, char **argv)
 
         now_sec = 4611686018427387914ULL + (unsigned long long)now.tv_sec;
         now_usec = 1000 * now.tv_usec + 500;
-        l = 8; for (i=0;i<8;++i) nonce[i] = now_sec >> (unsigned long long)(8 * --l);
-        l = 8; for (i=8;i<12;++i) nonce[i] = now_usec >> (unsigned long)(8 * --l); /* gcc -O3 will break nano */
+        l = 8; for (i=0;i<8;++i) nonce[i] = now_sec >> (unsigned long long)(--l << 3);
+        l = 8; for (i=8;i<12;++i) nonce[i] = now_usec >> (unsigned long)(--l << 3); /* gcc -O3 will break nano */
         for (i=12;i<16;++i) nonce[i] = 0;
         randombytes(nonce+16,8);
 
@@ -364,7 +363,6 @@ main(int argc, char **argv)
           exit(255);
         }
 
-        bzero(buffer1,2048);
         memmove(buffer1,nonce,24);
         memmove(buffer1+24,buffer0+16,32+16);
 
@@ -386,10 +384,10 @@ main(int argc, char **argv)
 
     }
 
-    if ((poll(&fds[1],1,512-(poll(&fds[0],1,0)*512))>0))
+    if (poll(&fds[1],1,0)>0)
     {
 
-      for (i=0;i<2048;++i)
+      for (i=0;i<32;++i)
       {
         buffer0[i] = 0;
         buffer1[i] = 0;
@@ -403,7 +401,6 @@ main(int argc, char **argv)
         exit(255);
       }
 
-//      bzero(nonce,24); /* leave extensible for now */
       randombytes(nonce,24);
 
       if (crypto_box_afternm(buffer0,buffer1,32+n,nonce,shorttermsharedk)<0)
@@ -412,16 +409,16 @@ main(int argc, char **argv)
         exit(255);
       }
 
-      bzero(buffer1,2048);
+      bzero(buffer1,32);
       memmove(buffer1+32,shorttermpk,32);
       memmove(buffer1+32+32,nonce,24);
       memmove(buffer1+32+32+24,buffer0+16,n+16);
-      bzero(buffer0,2048);
+      bzero(buffer0,16);
 
       now_sec = 4611686018427387914ULL + (unsigned long long)now.tv_sec;
       now_usec = 1000 * now.tv_usec + 500;
-      l = 8; for (i=0;i<8;++i) nonce[i] = now_sec >> (unsigned long long)(8 * --l);
-      l = 8; for (i=8;i<12;++i) nonce[i] = now_usec >> (unsigned long)(8 * --l); /* gcc -O3 will break nano */
+      l = 8; for (i=0;i<8;++i) nonce[i] = now_sec >> (unsigned long long)(--l << 3);
+      l = 8; for (i=8;i<12;++i) nonce[i] = now_usec >> (unsigned long)(--l << 3); /* gcc -O3 will break nano */
       for (i=12;i<16;++i) nonce[i] = 0;
       randombytes(nonce+16,8);
 
@@ -433,16 +430,17 @@ main(int argc, char **argv)
         exit(255);
       }
 
-      bzero(buffer1,2048);
       memmove(buffer1,nonce,24);
       memmove(buffer1+24,buffer0+16,32+24+n+16+16);
 
       if (sendto(3,buffer1,24+32+24+n+16+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))<0)
       {
         fprintf(stderr,"cryptotun: error: sendto(3,buffer1,24+32+24+n+16+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))\n");
-      }
+      } else ping = now.tv_sec;
 
     }
+
+    poll(fds,2,16384);
 
   }
 }
