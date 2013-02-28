@@ -282,7 +282,7 @@ main(int argc, char **argv)
 
     }
 
-//    if (poll(&fds[1],1,0)>0)
+//    if (poll(&fds[0],1,0)>0)
     if (fds[0].revents & POLLIN)
     {
 
