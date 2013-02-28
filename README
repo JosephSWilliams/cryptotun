@@ -27,6 +27,15 @@ usage:
 
   - or -
 
+  # notes on tap:
   # talamon> brd addr 255.255.255.252 in a 1.30.30.30/30 
   #          subnet also send to 1.30.30.32/32
+  #
+  # talamon> brd for a /30 is 255.255.255.252
+  #
+  # talamon> broadcast in 1.1.7.0/30 is 1 and 4
+  #
+  # talamon> tap addr with be 1.122.22.2/30 for example
+
+
   ./scripts/add-cryptotap --rtfm

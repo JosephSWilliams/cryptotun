@@ -283,7 +283,7 @@ main(int argc, char **argv)
 
     }
 
-    if (poll(&fds[0],1,0)>0)
+    devwrite: if (poll(&fds[0],1,0)>0)
     {
 
       n = recvfrom(3,buffer0,1500,0,(struct sockaddr *)&recvaddr,&recvaddr_len);
@@ -292,7 +292,7 @@ main(int argc, char **argv)
       {
         fprintf(stderr,"cryptotun: fatal error: recvfrom(3,buffer0,1500,0,(struct sockaddr *)&recvaddr,&recvaddr_len)\n");
         exit(255);
-      } else if (n<24+32+16) continue;
+      } else if (n<24+32+16) goto devread;
 
       memmove(nonce,buffer0,24);
 
@@ -300,21 +300,21 @@ main(int argc, char **argv)
       {
         if (nonce[i] > taia[i]){ l = 1; break; }
         if (nonce[i] < taia[i]){ l = 0; break; }
-      } if (!l) continue;
+      } if (!l) goto devread;
 
       now_sec = 4611686018427387914ULL + (unsigned long long)now.tv_sec;
       sec = 0ULL;
       l = 8; for (i=0;i<8;++i) sec += (unsigned long long)nonce[i] << (unsigned long long)(--l << 3);
-      if ( (sec>now_sec) && ( (sec-now_sec) > 128ULL) ) continue;
-      if ( (now_sec>sec) && ( (now_sec-sec) > 128ULL) ) continue;
+      if ( (sec>now_sec) && ( (sec-now_sec) > 128ULL) ) goto devread;
+      if ( (now_sec>sec) && ( (now_sec-sec) > 128ULL) ) goto devread;
 
       bzero(buffer1,16);
       memmove(buffer1+16,buffer0+24,-24+n);
       bzero(buffer0,32);
 
-//      if (crypto_box_open(buffer0,buffer1,16+-24+n,nonce,remotelongtermpk,longtermsk)<0) continue;
+//      if (crypto_box_open(buffer0,buffer1,16+-24+n,nonce,remotelongtermpk,longtermsk)<0) goto devread;
 
-      if (crypto_box_open_afternm(buffer0,buffer1,16+-24+n,nonce,longtermsharedk)<0) continue;
+      if (crypto_box_open_afternm(buffer0,buffer1,16+-24+n,nonce,longtermsharedk)<0) goto devread;
 
       //remoteaddr = recvaddr; SIGSEGV
       remoteaddr.sin_addr = recvaddr.sin_addr;
@@ -332,7 +332,7 @@ main(int argc, char **argv)
           exit(255);
         }
 
-      } if (n==24+32+16) continue;
+      } if (n==24+32+16) goto devread;
 
       bzero(buffer1,16);
       memmove(nonce,buffer0+32+32,24);
@@ -368,7 +368,7 @@ main(int argc, char **argv)
         }
 
         ping = now.tv_sec;
-        continue;
+        goto devread;
 
       }
 
@@ -380,7 +380,7 @@ main(int argc, char **argv)
 
     }
 
-    if (poll(&fds[1],1,0)>0)
+    devread: if (poll(&fds[1],1,0)>0)
     {
 
       bzero(buffer0,16);
