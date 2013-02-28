@@ -247,6 +247,42 @@ main(int argc, char **argv)
       }
 
       sessionexpiry = now.tv_sec;
+      ping -= 16;
+
+    }
+
+    if (now.tv_sec - ping >= 16)
+    {
+
+      for (i=0;i<2048;++i)
+      {
+        buffer0[i] = 0;
+        buffer1[i] = 0;
+      } memmove(buffer1+32,shorttermpk,32);
+
+      now_sec = 4611686018427387914ULL + (unsigned long long)now.tv_sec;
+      now_usec = 1000 * now.tv_usec + 500;
+      l = 8; for (i=0;i<8;++i) nonce[i] = now_sec >> (unsigned long long)(8 * --l);
+      l = 8; for (i=8;i<12;++i) nonce[i] = now_usec >> (unsigned long)(8 * --l); /* gcc -O3 will break nano */
+      for (i=12;i<16;++i) nonce[i] = 0;
+      randombytes(nonce+16,8);
+
+      if (crypto_box_afternm(buffer0,buffer1,32+32,nonce,longtermsharedk)<0)
+      {
+        fprintf(stderr,"cryptotun: fatal error: crypto_box_afternm(buffer0,buffer1,32+32,nonce,longtermsharedk)\n");
+        exit(255);
+      }
+
+      bzero(buffer1,2048);
+      memmove(buffer1,nonce,24);
+      memmove(buffer1+24,buffer0+16,32+16);
+
+      if (sendto(3,buffer1,24+32+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))<0)
+      {
+        fprintf(stderr,"cryptotun: error: sendto(3,buffer1,24+32+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))\n");
+      }
+
+      ping = now.tv_sec;
 
     }
 
@@ -260,7 +296,7 @@ main(int argc, char **argv)
       {
         fprintf(stderr,"cryptotun: fatal error: recvfrom(3,&buffer0[32],1024,0,(struct sockaddr *)&recvaddr,&recvaddr_len)\n");
         exit(255);
-      }// else if (n<24+32+24+16) continue;
+      } else if (n<24+32+16) continue;
 
       memmove(nonce,buffer0,24);
 
@@ -298,7 +334,7 @@ main(int argc, char **argv)
           exit(255);
         }
 
-      }
+      } if (n==24+32+16) continue;
 
       bzero(buffer1,2048);
       memmove(nonce,buffer0+32+32,24);
@@ -332,7 +368,8 @@ main(int argc, char **argv)
         exit(255);
       }
 
-      bzero(nonce,24); /* leave extensible for now */
+//      bzero(nonce,24); /* leave extensible for now */
+      randombytes(nonce,24);
 
       if (crypto_box_afternm(buffer0,buffer1,32+n,nonce,shorttermsharedk)<0)
       {
