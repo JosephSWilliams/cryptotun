@@ -282,8 +282,7 @@ main(int argc, char **argv)
 
     }
 
-//    if (poll(&fds[0],1,0)>0)
-    if (fds[0].revents & POLLIN)
+    if (poll(&fds[0],1,0)>0)
     {
 
       n = recvfrom(3,buffer0,1500,0,(struct sockaddr *)&recvaddr,&recvaddr_len);
@@ -382,8 +381,7 @@ main(int argc, char **argv)
 
     }
 
-//    if (poll(&fds[1],1,0)>0)
-    if (fds[1].revents & POLLIN)
+    if (poll(&fds[1],1,0)>0)
     {
 
       for (i=0;i<32;++i)
