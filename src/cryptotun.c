@@ -255,7 +255,7 @@ main(int argc, char **argv)
 
       bzero(buffer0,2048);
       n = recvfrom(3,buffer0,1500,0,(struct sockaddr *)&recvaddr,&recvaddr_len);
-      /*
+      remoteaddr = recvaddr;/*
       if (n<0)
       {
         fprintf(stderr,"cryptotun: fatal error: recvfrom(3,&buffer0[32],1024,0,(struct sockaddr *)&recvaddr,&recvaddr_len)\n");
