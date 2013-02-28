@@ -172,7 +172,7 @@ main(int argc, char **argv)
     memset(&ifr,0,sizeof(ifr));
     strcpy(ifr.ifr_name,argv[7]);
 
-    ifr.ifr_flags = IFF_TUN /* | IFF_NO_PI */;
+    ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
 
     if (ioctl(4,TUNSETIFF,(void *)&ifr)<0)
     {
@@ -192,7 +192,7 @@ main(int argc, char **argv)
       exit(255);
     }
 
-    /*
+
     int ifr_flag = IFF_POINTOPOINT | IFF_MULTICAST;
 
     if (ioctl(4,TUNSIFMODE,&ifr_flag)<0)
@@ -214,7 +214,6 @@ main(int argc, char **argv)
       fprintf(stderr,"cryptotun: fatal error: ioctl(4,TUNSIFHEAD,&ifr_flag)\n");
       exit(255);
     }
-    */
 
   #endif
 

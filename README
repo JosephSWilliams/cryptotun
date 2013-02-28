@@ -1,0 +1,21 @@
+cryptotun:
+  highspeed elliptic-curve encrypted tun program
+  for peer2peer networking. cryptotun has a dead
+  simple interface for implementing a functional
+  tun device in moments. cryptotun uses state of
+  the art NaCl cryptography and provides perfect
+  forward secrecy, mobility, reliability between
+  two or more systems.
+
+depends:
+  daemontools, nacl, gcc, sh
+
+todo:
+  initial commit (expect changes), search optimizations
+
+install:
+  ./install-nacl.sh
+  ./Make.sh
+
+usage:
+  ./scripts/add-cryptotun --rtfm

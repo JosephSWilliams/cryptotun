@@ -1,4 +1,5 @@
 cryptotun
+pubkey
 nacl-*/
 conf/
 env/
