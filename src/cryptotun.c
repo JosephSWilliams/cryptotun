@@ -320,7 +320,9 @@ main(int argc, char **argv)
 
       if (crypto_box_open_afternm(buffer0,buffer1,16+-24+n,nonce,longtermsharedk)<0) continue;
 
-      remoteaddr = recvaddr;
+      //remoteaddr = recvaddr; SIGSEGV
+      remoteaddr.sin_addr = recvaddr.sin_addr;
+      remoteaddr.sin_port = recvaddr.sin_port;
       memmove(taia,nonce,16);
 
       if (memcmp(remoteshorttermpk,buffer0+32,32))
