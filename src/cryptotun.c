@@ -254,15 +254,15 @@ main(int argc, char **argv)
     {
 
       bzero(buffer0,2048);
-      n = recvfrom(3,buffer0,1500,0,(struct sockaddr *)&recvaddr,&recvaddr_len);
-      remoteaddr = recvaddr;/*
+      n = recvfrom(3,buffer0+32,1500,0,(struct sockaddr *)&recvaddr,&recvaddr_len);
+
       if (n<0)
       {
         fprintf(stderr,"cryptotun: fatal error: recvfrom(3,&buffer0[32],1024,0,(struct sockaddr *)&recvaddr,&recvaddr_len)\n");
         exit(255);
       }
 
-      memmove(nonce,buffer0,24);
+      memmove(nonce,buffer0+32,24);
 
       l=0; for (i=0;i<16;++i)
       {
@@ -277,7 +277,7 @@ main(int argc, char **argv)
       else if (now_sec - sec > 128ULL) continue;
 
       bzero(buffer1,2048);
-      memmove(buffer1+16,buffer0+24,n-24);
+      memmove(buffer1+16,buffer0+32+24,n-24);
       bzero(buffer0,2048);
 
       if (crypto_box_open_afternm(buffer0,buffer1,16+n-24,nonce,longtermsharedk)<0) continue;
@@ -286,11 +286,11 @@ main(int argc, char **argv)
 
       memmove(taia,nonce,16);
 
-      if (write(4,buffer0+32,n-24-16)<0)
+      if (write(4,buffer0+32,-24+n-16)<0)
       {
-        fprintf(stderr,"cryptotun: fatal error: write(4,buffer0+32,n-24-16)\n");
+        fprintf(stderr,"cryptotun: fatal error: write(4,buffer0+32,-24+n-16)\n");
         exit(255);
-      }*/write(4,buffer0,n);
+      }
 
     }
 
@@ -303,20 +303,21 @@ main(int argc, char **argv)
         buffer1[i] = 0;
       }
 
-      /*n = read(4,buffer1+32,1500);*/n = read(4,buffer1,1500);
+      n = read(4,buffer1+32,1500);
 
       if (n<0)
       {
         fprintf(stderr,"cryptotun: fatal error: read(4,&buffer1[16],864)\n");
         exit(255);
       }
-      /*
-      bzero(nonce,24);
+
+
       now_sec = 4611686018427387914ULL + (unsigned long long)now.tv_sec;
       now_usec = 1000 * now.tv_usec + 500;
       l = 8; for (i=0;i<8;++i) nonce[i] = now_sec >> (unsigned long long)(8 * --l);
       l = 8; for (i=8;i<12;++i) nonce[i] = now_usec >> (unsigned long)(8 * --l);
       for (i=12;i<16;++i) nonce[i] = 0;
+      randombytes(nonce+16,8);
 
       if (crypto_box_afternm(buffer0,buffer1,32+n,nonce,longtermsharedk)<0)
       {
@@ -328,9 +329,7 @@ main(int argc, char **argv)
       memmove(buffer1,nonce,24);
       memmove(buffer1+24,buffer0+16,n+16);
 
-      n = sendto(3,buffer1,24+n+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr));
-      */n = sendto(3,buffer1,n,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr));
-      if (n<0);
+      if (sendto(3,buffer1,24+n+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))<0)
       {
         fprintf(stderr,"cryptotun: error: sendto(3,buffer1,24+n+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))\n");
       }
