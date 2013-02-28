@@ -251,7 +251,7 @@ main(int argc, char **argv)
 
     }
 
-    if (now.tv_sec - ping >= 16)
+    sendping: if (now.tv_sec - ping >= 16)
     {
 
       bzero(buffer0,16);
@@ -280,6 +280,7 @@ main(int argc, char **argv)
       }
 
       ping = now.tv_sec;
+      goto devread;
 
     }
 
@@ -339,38 +340,7 @@ main(int argc, char **argv)
       memmove(buffer1+16,buffer0+32+32+24,-24-32-24+n-16);
       bzero(buffer0,32);
 
-      if (crypto_box_open_afternm(buffer0,buffer1,16+-24-32-24+n-16,nonce,shorttermsharedk)<0)
-      {
-
-        bzero(buffer0,16);
-        bzero(buffer1,32);
-        memmove(buffer1+32,shorttermpk,32);
-
-        now_sec = 4611686018427387914ULL + (unsigned long long)now.tv_sec;
-        now_usec = 1000 * now.tv_usec + 500;
-        l = 8; for (i=0;i<8;++i) nonce[i] = now_sec >> (unsigned long long)(--l << 3);
-        l = 8; for (i=8;i<12;++i) nonce[i] = now_usec >> (unsigned long)(--l << 3); /* gcc -O3 will break nano */
-        for (i=12;i<16;++i) nonce[i] = 0;
-        randombytes(nonce+16,8);
-
-        if (crypto_box_afternm(buffer0,buffer1,32+32,nonce,longtermsharedk)<0)
-        {
-          fprintf(stderr,"cryptotun: fatal error: crypto_box_afternm(buffer0,buffer1,32+32,nonce,longtermsharedk)\n");
-          exit(255);
-        }
-
-        memmove(buffer1,nonce,24);
-        memmove(buffer1+24,buffer0+16,32+16);
-
-        if (sendto(3,buffer1,24+32+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))<0)
-        {
-          fprintf(stderr,"cryptotun: error: sendto(3,buffer1,24+32+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))\n");
-        }
-
-        ping = now.tv_sec;
-        goto devread;
-
-      }
+      if (crypto_box_open_afternm(buffer0,buffer1,16+-24-32-24+n-16,nonce,shorttermsharedk)<0) goto sendping;
 
       if (write(4,buffer0+32,-24-32-24+n-16-16)<0)
       {
