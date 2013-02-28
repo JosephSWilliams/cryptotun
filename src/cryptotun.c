@@ -162,7 +162,7 @@ main(int argc, char **argv)
 
   #ifdef linux
 
-    if (open("/dev/net/tun",2)!=4) exit(255);
+    if (open("/dev/net/tun",2)!=4)
     {
       fprintf(stderr,"cryptotun: fatal error: open(\"/dev/net/tun\",2) != fd4\n");
       exit(255);
