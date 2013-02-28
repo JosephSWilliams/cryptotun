@@ -1,4 +1,4 @@
 #!/bin/sh
-git add git-commit .gitignore gitd Make.sh scripts src README run install-nacl.sh
+git add git-commit .gitignore gitd Make.sh scripts src README run* install-nacl.sh
 TZ=UTC git commit --date="`date -u +'%s'`"
 test -x /usr/lib/git-core/git-update-server-info && /usr/lib/git-core/git-update-server-info

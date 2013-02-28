@@ -1,0 +1,25 @@
+#!/bin/sh -e
+
+export INTERFACE=`cat env/INTERFACE`
+export TAP_ADDR=`cat env/TAP_ADDR`
+export GATEWAY=`cat env/GATEWAY`
+export BRD=`cat env/BRD`
+export LOCALIP=`cat env/LOCALIP`
+export LOCALPORT=`cat env/LOCALPORT`
+export REMOTEIP=`cat env/REMOTEIP`
+export REMOTEPORT=`cat env/REMOTEPORT`
+export PUBKEY=`cat env/PUBKEY`
+export MTU=`cat env/MTU`
+
+export IFF_TAP=1
+
+(
+  sleep 4
+  ip addr add $TAP_ADDR brd $BRD dev $INTERFACE scope link
+  ip addr add $GATEWAY/32 dev $INTERFACE scope global
+  ip link set dev $INTERFACE up
+  ifconfig $INTERFACE mtu $MTU
+  ping -c 16 -I $INTERFACE $PTP -r -w 8
+) &
+
+exec ./cryptotun $LOCALIP $LOCALPORT $REMOTEIP $REMOTEPORT env/SECKEY $PUBKEY $INTERFACE

@@ -7,6 +7,11 @@ cryptotun:
   forward secrecy, mobility, reliability between
   two or more systems.
 
+thanks:
+  djb -> daemontools and nacl are unmatched
+  ivo smits -> insights on nacl and tun/tap devices
+  talamon -> testing and commiting scripts for tap support
+
 depends:
   daemontools, nacl, gcc, sh
 
@@ -19,3 +24,9 @@ install:
 
 usage:
   ./scripts/add-cryptotun --rtfm
+
+  - or -
+
+  # talamon> brd addr 255.255.255.252 in a 1.30.30.30/30 
+  #          subnet also send to 1.30.30.32/32
+  ./scripts/add-cryptotap --rtfm
