@@ -201,14 +201,14 @@ main(int argc, char **argv)
       exit(255);
     }
 
-    ifr_flag=0;
+    ifr_flag = 0;
     if (ioctl(4,TUNSLMODE,&ifr_flag)<0)
     {
       fprintf(stderr,"cryptotun: fatal error: ioctl(4,TUNSLMODE,&ifr_flag)\n");
       exit(255);
     }
 
-    ifr_flag=0;
+    ifr_flag = 0;
     if (ioctl(4,TUNSIFHEAD,&ifr_flag)<0)
     {
       fprintf(stderr,"cryptotun: fatal error: ioctl(4,TUNSIFHEAD,&ifr_flag)\n");
@@ -220,10 +220,8 @@ main(int argc, char **argv)
   struct pollfd fds[2];
   fds[0].fd = 3;
   fds[0].events = POLLIN;
-  fds[0].revents = POLLIN;
   fds[1].fd = 4;
   fds[1].events = POLLIN;
-  fds[1].revents = POLLIN;
 
   while (1)
   {
@@ -272,7 +270,6 @@ main(int argc, char **argv)
         exit(255);
       }
 
-      bzero(buffer1,16);
       memmove(buffer1,nonce,24);
       memmove(buffer1+24,buffer0+16,32+16);
 
@@ -285,7 +282,8 @@ main(int argc, char **argv)
 
     }
 
-    if (poll(&fds[0],1,0)>0)
+//    if (poll(&fds[1],1,0)>0)
+    if (fds[0].revents & POLLIN)
     {
 
       n = recvfrom(3,buffer0,1500,0,(struct sockaddr *)&recvaddr,&recvaddr_len);
@@ -384,7 +382,8 @@ main(int argc, char **argv)
 
     }
 
-    if (poll(&fds[1],1,0)>0)
+//    if (poll(&fds[1],1,0)>0)
+    if (fds[1].revents & POLLIN)
     {
 
       for (i=0;i<32;++i)
