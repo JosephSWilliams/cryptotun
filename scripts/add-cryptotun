@@ -19,6 +19,8 @@ printf $7 > /services/cryptotun-$5/env/GATEWAY || exit 255
 printf $8 > /services/cryptotun-$5/env/PTP || exit 255
 printf $9 > /services/cryptotun-$5/env/PUBKEY || exit 255
 
+chmod 700 /services/cryptotun-$5/env/ || exit 255
+
 test -L /services/cryptotun-$5/cryptotun || \
   ln -s "`pwd`"/cryptotun /services/cryptotun-$5/cryptotun || exit 255
 
