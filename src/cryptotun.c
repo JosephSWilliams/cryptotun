@@ -251,11 +251,9 @@ main(int argc, char **argv)
     if (now.tv_sec - ping >= 16)
     {
 
-      for (i=0;i<32;++i)
-      {
-        buffer0[i] = 0;
-        buffer1[i] = 0;
-      } memmove(buffer1+32,shorttermpk,32);
+      bzero(buffer0,16);
+      bzero(buffer1,32);
+      memmove(buffer1+32,shorttermpk,32);
 
       now_sec = 4611686018427387914ULL + (unsigned long long)now.tv_sec;
       now_usec = 1000 * now.tv_usec + 500;
@@ -341,11 +339,9 @@ main(int argc, char **argv)
       if (crypto_box_open_afternm(buffer0,buffer1,16+-24-32-24+n-16,nonce,shorttermsharedk)<0)
       {
 
-        for (i=0;i<32;++i)
-        {
-          buffer0[i] = 0;
-          buffer1[i] = 0;
-        } memmove(buffer1+32,shorttermpk,32);
+        bzero(buffer0,16);
+        bzero(buffer1,32);
+        memmove(buffer1+32,shorttermpk,32);
 
         now_sec = 4611686018427387914ULL + (unsigned long long)now.tv_sec;
         now_usec = 1000 * now.tv_usec + 500;
@@ -384,11 +380,8 @@ main(int argc, char **argv)
     if (poll(&fds[1],1,0)>0)
     {
 
-      for (i=0;i<32;++i)
-      {
-        buffer0[i] = 0;
-        buffer1[i] = 0;
-      }
+      bzero(buffer0,16);
+      bzero(buffer1,32);
 
       n = read(4,buffer1+32,1500);
 
