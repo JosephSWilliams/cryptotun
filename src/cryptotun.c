@@ -251,8 +251,7 @@ main(int argc, char **argv)
 
     }
 
-    sendping: if (now.tv_sec - ping >= 16)
-    {
+    if (now.tv_sec - ping >= 16){ sendping:
 
       bzero(buffer0,16);
       bzero(buffer1,32);
