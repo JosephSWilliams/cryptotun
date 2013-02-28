@@ -254,15 +254,15 @@ main(int argc, char **argv)
     {
 
       bzero(buffer0,2048);
-      n = recvfrom(3,buffer0+32,1500,0,(struct sockaddr *)&recvaddr,&recvaddr_len);
+      n = recvfrom(3,buffer0,1500,0,(struct sockaddr *)&recvaddr,&recvaddr_len);
 
       if (n<0)
       {
         fprintf(stderr,"cryptotun: fatal error: recvfrom(3,&buffer0[32],1024,0,(struct sockaddr *)&recvaddr,&recvaddr_len)\n");
         exit(255);
-      }
+      } else if (n<24+16) continue;
 
-      memmove(nonce,buffer0+32,24);
+      memmove(nonce,buffer0,24);
 
       l=0; for (i=0;i<16;++i)
       {
@@ -277,10 +277,10 @@ main(int argc, char **argv)
       else if (now_sec - sec > 128ULL) continue;
 
       bzero(buffer1,2048);
-      memmove(buffer1+16,buffer0+32+24,n-24);
+      memmove(buffer1+16,buffer0+24,-24+n);
       bzero(buffer0,2048);
 
-      if (crypto_box_open_afternm(buffer0,buffer1,16+n-24,nonce,longtermsharedk)<0) continue;
+      if (crypto_box_open_afternm(buffer0,buffer1,16+-24+n,nonce,longtermsharedk)<0) continue;
 
       remoteaddr = recvaddr;
 
@@ -311,11 +311,10 @@ main(int argc, char **argv)
         exit(255);
       }
 
-
       now_sec = 4611686018427387914ULL + (unsigned long long)now.tv_sec;
       now_usec = 1000 * now.tv_usec + 500;
       l = 8; for (i=0;i<8;++i) nonce[i] = now_sec >> (unsigned long long)(8 * --l);
-      l = 8; for (i=8;i<12;++i) nonce[i] = now_usec >> (unsigned long)(8 * --l);
+      l = 8; for (i=8;i<12;++i) nonce[i] = now_usec >> (unsigned long)(8 * --l); /* gcc -O3 will break nano */
       for (i=12;i<16;++i) nonce[i] = 0;
       randombytes(nonce+16,8);
 
