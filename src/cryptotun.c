@@ -35,7 +35,7 @@ cryptotun:   ifr_name\n\
 main(int argc, char **argv)
 {
 
-  if (argc<7)
+  if (argc<8)
   {
     fprintf(stderr,USAGE);
     exit(64);
@@ -133,6 +133,7 @@ main(int argc, char **argv)
     fprintf(stderr,"cryptotun: fatal error: invalid remotelongtermpk\n");
     exit(64);
   }
+
   l=0; for (i=0;i<64;++i)
   {
     if (((unsigned char)argv[6][i]>47)&&((unsigned char)argv[6][i]<58)) remotelongtermpk[l] = (unsigned char)argv[6][i] - 48 << 4;
@@ -158,7 +159,6 @@ main(int argc, char **argv)
     fprintf(stderr,"cryptotun: fatal error: invalid ifr_name %s\n",argv[7]);
     exit(64);
   }
-
 
   #ifdef linux
 
@@ -194,7 +194,6 @@ main(int argc, char **argv)
       fprintf(stderr,"cryptotun: fatal error: open(ifr_name,2) != fd4\n");
       exit(255);
     }
-
 
     int ifr_flag = IFF_POINTOPOINT | IFF_MULTICAST;
 
