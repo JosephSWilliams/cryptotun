@@ -6,7 +6,6 @@
 #include <sys/fcntl.h>
 #include <sys/types.h>
 #include <sys/time.h>
-#include <strings.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -57,7 +56,7 @@ main(int argc, char **argv)
     exit(64);
   }
 
-  bzero(&sock,sizeof(sock));
+  memset(&sock,0,sizeof(sock));
   sock.sin_family = AF_INET;
   sock.sin_addr.s_addr = inet_addr(argv[1]);
   sock.sin_port = htons(atoi(argv[2]));
@@ -68,7 +67,7 @@ main(int argc, char **argv)
     exit(64);
   }
 
-  bzero(&remoteaddr,sizeof(remoteaddr));
+  memset(&remoteaddr,0,sizeof(remoteaddr));
   remoteaddr.sin_family = AF_INET;
   remoteaddr.sin_addr.s_addr = inet_addr(argv[3]);
   remoteaddr.sin_port = htons(atoi(argv[4]));
@@ -250,8 +249,8 @@ main(int argc, char **argv)
 
     if (now.tv_sec - ping >= 16){ sendping:
 
-      bzero(buffer0,16);
-      bzero(buffer1,32);
+      memset(buffer0,0,16);
+      memset(buffer1,0,32);
       memmove(buffer1+32,shorttermpk,32);
 
       taia_now(nonce);
@@ -302,9 +301,9 @@ main(int argc, char **argv)
       if ( (sec>now_sec) && ( (sec-now_sec) > 128ULL) ) goto devread;
       if ( (now_sec>sec) && ( (now_sec-sec) > 128ULL) ) goto devread;
 
-      bzero(buffer1,16);
+      memset(buffer1,0,16);
       memmove(buffer1+16,buffer0+24,-24+n);
-      bzero(buffer0,32);
+      memset(buffer0,0,32);
 
 //      if (crypto_box_open(buffer0,buffer1,16+-24+n,nonce,remotelongtermpk,longtermsk)<0) goto devread;
 
@@ -328,10 +327,10 @@ main(int argc, char **argv)
 
       } if (n==24+32+16) goto devread;
 
-      bzero(buffer1,16);
+      memset(buffer1,0,16);
       memmove(nonce,buffer0+32+32,24);
       memmove(buffer1+16,buffer0+32+32+24,-24-32-24+n-16);
-      bzero(buffer0,32);
+      memset(buffer0,0,32);
 
       if (crypto_box_open_afternm(buffer0,buffer1,16+-24-32-24+n-16,nonce,shorttermsharedk)<0) goto sendping;
 
@@ -346,8 +345,8 @@ main(int argc, char **argv)
     devread: if (poll(&fds[1],1,0)>0)
     {
 
-      bzero(buffer0,16);
-      bzero(buffer1,32);
+      memset(buffer0,0,16);
+      memset(buffer1,0,32);
 
       n = read(4,buffer1+32,1500);
 
@@ -365,11 +364,11 @@ main(int argc, char **argv)
         exit(255);
       }
 
-      bzero(buffer1,32);
+      memset(buffer1,0,32);
       memmove(buffer1+32,shorttermpk,32);
       memmove(buffer1+32+32,nonce,24);
       memmove(buffer1+32+32+24,buffer0+16,n+16);
-      bzero(buffer0,16);
+      memset(buffer0,0,16);
 
       taia_now(nonce);
       taia_pack(nonce,nonce);

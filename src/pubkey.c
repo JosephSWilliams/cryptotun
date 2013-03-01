@@ -1,5 +1,8 @@
 #define USAGE "Usage: pubkey /path/to/seckey\n"
 #include <nacl/crypto_scalarmult_curve25519.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 main(int argc, char **argv){
 if (argc>1){
   int i;
