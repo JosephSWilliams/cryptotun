@@ -96,8 +96,6 @@ main(int argc, char **argv)
   unsigned char shorttermsharedk[32];
 
   struct timeval now;
-  unsigned long atto;
-  unsigned long nano;
   unsigned long long sec;
   unsigned long long now_sec;
   unsigned char taia[16] = {0};
