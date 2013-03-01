@@ -1,4 +1,4 @@
-#include <nacl/crypto_scalarmult_curve25519.h>
+//#include <nacl/crypto_scalarmult_curve25519.h>
 #include <nacl/randombytes.h>
 #include <nacl/crypto_box.h>
 #include <sys/socket.h>
@@ -82,7 +82,6 @@ main(int argc, char **argv)
 
   unsigned char nonce[24];
 
-  unsigned char longtermpk[32];
   unsigned char longtermsk[32];
 
   unsigned char shorttermpk[32];
@@ -115,15 +114,7 @@ main(int argc, char **argv)
   }
   close(4);
 
-  crypto_scalarmult_curve25519_base(longtermpk,longtermsk);
-
-  /*
-  if (crypto_scalarmult_curve25519_base(longtermpk,longtermsk)<0);
-  {
-    fprintf(stderr,"cryptotun: fatal error: failed crypto_scalarmult_curve25519_base(longtermpk,longtermsk)\n",argv[5]);
-    exit(64);
-  }
-  */
+//  crypto_scalarmult_curve25519_base(longtermpk,longtermsk);
 
   if (strlen(argv[6])<64)
   {
@@ -374,7 +365,7 @@ main(int argc, char **argv)
       taia_pack(nonce,nonce);
       randombytes(nonce+16,8);
 
-//      if (crypto_box(buffer0,buffer1,32+n,nonce,remotelongtermpk,longtermsk)<0) exit(255);
+//      if (crypto_box(buffer0,buffer1,32+32+24+n+16,nonce,remotelongtermpk,longtermsk)<0) exit(255);
 
       if (crypto_box_afternm(buffer0,buffer1,32+32+24+n+16,nonce,longtermsharedk)<0)
       {
