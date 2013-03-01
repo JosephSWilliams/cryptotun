@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <taia.h>
 #include <poll.h>
 
 #ifdef linux
@@ -97,7 +98,6 @@ main(int argc, char **argv)
   struct timeval now;
   unsigned long atto;
   unsigned long nano;
-  unsigned long now_usec;
   unsigned long long sec;
   unsigned long long now_sec;
   unsigned char taia[16] = {0};
@@ -257,11 +257,8 @@ main(int argc, char **argv)
       bzero(buffer1,32);
       memmove(buffer1+32,shorttermpk,32);
 
-      now_sec = 4611686018427387914ULL + (unsigned long long)now.tv_sec;
-      now_usec = 1000 * now.tv_usec + 500;
-      l = 8; for (i=0;i<8;++i) nonce[i] = now_sec >> (unsigned long long)(--l << 3);
-      l = 8; for (i=8;i<12;++i) nonce[i] = now_usec >> (unsigned long)(--l << 3); /* gcc -O3 will break nano */
-      for (i=12;i<16;++i) nonce[i] = 0;
+      taia_now(nonce);
+      taia_pack(nonce,nonce);
       randombytes(nonce+16,8);
 
       if (crypto_box_afternm(buffer0,buffer1,32+32,nonce,longtermsharedk)<0)
@@ -377,11 +374,8 @@ main(int argc, char **argv)
       memmove(buffer1+32+32+24,buffer0+16,n+16);
       bzero(buffer0,16);
 
-      now_sec = 4611686018427387914ULL + (unsigned long long)now.tv_sec;
-      now_usec = 1000 * now.tv_usec + 500;
-      l = 8; for (i=0;i<8;++i) nonce[i] = now_sec >> (unsigned long long)(--l << 3);
-      l = 8; for (i=8;i<12;++i) nonce[i] = now_usec >> (unsigned long)(--l << 3); /* gcc -O3 will break nano */
-      for (i=12;i<16;++i) nonce[i] = 0;
+      taia_now(nonce);
+      taia_pack(nonce,nonce);
       randombytes(nonce+16,8);
 
 //      if (crypto_box(buffer0,buffer1,32+n,nonce,remotelongtermpk,longtermsk)<0) exit(255);
