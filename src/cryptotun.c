@@ -72,14 +72,6 @@ main(int argc, char **argv)
   remoteaddr.sin_addr.s_addr = inet_addr(argv[3]);
   remoteaddr.sin_port = htons(atoi(argv[4]));
 
-  /*
-  if (connect(3,(struct sockaddr*)&sock,sizeof(sock))<0)
-  {
-    fprintf(stderr,"cryptotun: fatal error: failed connect()\n");
-    exit(64);
-  }
-  */
-
   unsigned char nonce[24];
   unsigned char longtermsk[32];
   unsigned char shorttermpk[32];
@@ -109,8 +101,6 @@ main(int argc, char **argv)
     exit(64);
   }
   close(4);
-
-//  crypto_scalarmult_curve25519_base(longtermpk,longtermsk);
 
   if (strlen(argv[6])<64)
   {
@@ -263,7 +253,6 @@ main(int argc, char **argv)
 
     }
 
-//    devwrite: if (poll(&fds[0],1,0)>0)
     devwrite: if (fds[0].revents & POLLIN)
     {
 
@@ -287,11 +276,8 @@ main(int argc, char **argv)
       memmove(buffer1+16,buffer0+24,-24+n);
       memset(buffer0,0,32);
 
-//      if (crypto_box_open(buffer0,buffer1,16+-24+n,nonce,remotelongtermpk,longtermsk)<0) goto devread;
-
       if (crypto_box_open_afternm(buffer0,buffer1,16+-24+n,nonce,longtermsharedk)<0) goto devread;
 
-      //remoteaddr = recvaddr; SIGSEGV
       remoteaddr.sin_addr = recvaddr.sin_addr;
       remoteaddr.sin_port = recvaddr.sin_port;
       memmove(taia,nonce,16);
@@ -324,7 +310,6 @@ main(int argc, char **argv)
 
     }
 
-//    devread: if (poll(&fds[1],1,0)>0)
     devread: if (fds[1].revents & POLLIN)
     {
 
@@ -356,8 +341,6 @@ main(int argc, char **argv)
       taia_now(nonce);
       taia_pack(nonce,nonce);
       randombytes(nonce+16,8);
-
-//      if (crypto_box(buffer0,buffer1,32+32+24+n+16,nonce,remotelongtermpk,longtermsk)<0) exit(255);
 
       if (crypto_box_afternm(buffer0,buffer1,32+32+24+n+16,nonce,longtermsharedk)<0)
       {
