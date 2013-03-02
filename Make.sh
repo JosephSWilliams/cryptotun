@@ -5,4 +5,4 @@
   exit 64
 
 gcc -O3 src/pubkey.c -o pubkey -l nacl
-gcc -O3 src/cryptotun.c -o cryptotun -l tai -l nacl /usr/lib/randombytes.o
+gcc src/cryptotun.c -o cryptotun -l tai -l nacl /usr/lib/randombytes.o
