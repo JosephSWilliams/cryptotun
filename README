@@ -1,11 +1,143 @@
-cryptotun:
-  highspeed elliptic-curve encrypted tun program
-  for peer2peer networking. cryptotun has a dead
-  simple interface for implementing a functional
-  tun device in moments. cryptotun uses state of
-  the art NaCl cryptography and provides perfect
-  forward secrecy, mobility, reliability between
-  two or more systems.
+CryptoTUN is probably the most simple and secure VPN software available.
+It uses layered crypto_box_curve25519xsalsa20poly1305 and taia primitives,
+providing perfect forward secrecy and protection against replay attacks.
+CryptoTUN is dead simple and written entirely in C. As it currently
+stands, CryptoTUN is less code than QuickTun, and far less code than
+OpenVPN. This makes CryptoTUN highly effecient and friendly to open source
+viewers.
+
+Security from the ground up, CryptoTUN takes security in mind before it's
+even executed. When using the admin scripts to spawn a new daemon, no
+secret data is left in a log or command-line history. Secret keys are
+generated directly with /dev/urandom and the binary data is piped to the
+secret key file, and then chmod 700 is set as root on the container,
+preventing rogue scripts and unprivileged users retreiving it. CryptoTUN
+then reads the file with read(fd,"path/to/seckey",32).
+
+CryptoTUN secret keys are generated with /dev/urandom. /dev/urandom is
+a simple and secure implementation, suitable for cryptographic randomness.
+an admin that can remember a secret passphrase can remember where a secure
+secret key file is located, without worrying about dictionary attacks or
+the security blunders in various implementations.
+
+ssh random blunder:
+    "In 2006 a Debian developer removed one critical
+    line of randomness-generation code from the OpenSSL package shipped with
+    Debian GNU/Linux. Code-verification tools had complained that the line was
+    producing unpredictable results, and the developer did not see why the line
+    was necessary. Until this bug was discovered in 2008, OpenSSL keys
+    generated under Debian and Ubuntu were chosen from a set of size only 32768.
+    Breaking the encryption or authentication of any communication secured with
+    such a key was a matter of seconds." - from coolnacl-*.pdf
+
+quicktun random blunder:
+    /*
+      keypair.c: failed to link against
+      randombytes.o and reimplemented
+      randombytes() with rand()
+    */
+
+    void randombytes(char* bytes) {
+    	char* b;
+    	srand(time(NULL));
+    	for (b = bytes; b < bytes + crypto_box_SECRETKEYBYTES; b++) *b = rand() % 255;
+    }
+
+quicktun security blunder:
+    # from a quicktun run file
+    export PRIVATE_KEY=$SECKEY
+
+CryptoTUN is configured and launched with a few command-line arguments
+with shell scripts for leverage. This is comparibly more simple than
+QuickTun's usage, and far more simple than OpenVPN. In fact, CryptoTUN
+can be launched in just a few command line arguments and always uses
+exactly one secure protocol that always prevents replay attacks and
+provides perfect forward secrecy.
+
+    ./scripts/add-cryptotun $args
+    printf $remote_pubkey > /services/cryptotun-$interface/env/PUBKEY
+    svc -t /service/cryptotun-$interface
+
+With a simple configuration like this, it's difficult to create an
+insecure configuration. Chances are, if you screw the command-line
+arguments for CryptoTUN it won't even run and/or handle remote data.
+
+OpenVPN configuration:
+    http://openvpn.net/index.php/open-source/documentation/howto.html#mitm
+    aka a few hundred lines of potential misconfiguration.
+
+QuickTun run:
+    #!/bin/sh
+    export REMOTE_ADDRESS=ipaddress-of-remote-end
+    export LOCAL_ADDRESS=ipaddress-of-local-end
+    export PRIVATE_KEY=private-key-of-local-end
+    export PUBLIC_KEY=public-key-of-remote-end
+
+    # nacl0 and nacltai (encrypted) protocols only:
+    # this protocol provides no protection against replays?
+    # why even use it?
+    #
+    #   $PRIVATE_KEY - you should probably chmod 600 this and hope no one
+    #                  figures out how to cat /proc fs.
+    #   $PUBLIC_KEY - remote longtermpublickey
+    #
+    # nacltai (encrypted) protocol only:
+    #   TIME_WINDOW - forget to set this and you're screwed.
+
+    /usr/sbin/quicktun
+
+QuickTun's nacltai is secure against replays if you remember to set
+the $TIME_WINDOW. CryptoTUN doesn't give you the chance for failure.
+The "TIME WINDOW" in CryptoTUN is the second you start it, and
+requires a new taia for each incoming packet.
+
+OpenVPN uses SSL, which has a long history of security failures, and
+doesn't protect users against replay attacks. OpenVPN also fails to
+provide perfect forward secrecy.
+
+QuickTun can protect you from replay attacks if you configure it
+correctly. Quicktun however cannot protect any of the data passed
+inside your VPN if either peer's secret key is stolen.
+
+CryptoTUN always protects you from replay attacks. Every 8 minutes
+that CryptoTUN is running, a new short-term keypair is generated
+and used to encrypt the inside layer of data which means if your
+long-term secret key or your peer's long-term secret key is stolen,
+an attacker has a slim chance of ever decrypting old data.
+
+CryptoTUN uses NaCl's precomputation interface allowing it
+to decrypt packets faster than your peer can send them.
+crypto_box_beforenm() is used to derive a shared secret
+for both layers of encryption. any incoming and outgoing
+packets are then passed through crypto_box_afternm() and
+crypto_box_open_afternm(). NaCl's precomputation interface
+allows increased speeds over the standard crypto_box() and
+crypto_box_open() functions.
+
+from coolnacl-*.pdf:
+    "For example, using a single AMD Phenom II X6 1100T CPU
+    (6 cores, 3.3GHz,purchased for $190 a year ago), NaCl performs
+    more than 80000 crypto_box operations per second and
+    more than 80000 crypto_box_open operations per second."
+
+    - compared to OpenSSL -
+
+    "For public-key authenticated encryption at a security leve
+    we would accept, the fastest option in OpenSSL was nistp256
+    ECDH running at 9300 operations/second for small packets.
+    The lowest-security option in OpenSSL was secp160r1 ECDH,
+    running at 29800 operations/second."
+
+CryptoTUN adds reliability and mobility to both dynamic and
+static end-points. Every 16 seconds your tun/tap device is
+quiet, CryptoTUN sends a small authenticated packet
+automatically updating your peer's CryptoTUN with your IP
+and short-term public key. Short-term session keys are learned
+seemlessly through natural traffic as well, preventing
+packetloss. If CryptoTUN ever encounters an authenticated
+packet and cannot decrypt the short-term layer, CryptoTUN
+quickly informs your peer of your current short-term public
+key.
 
 thanks:
   djb -> daemontools and nacl are unmatched
@@ -16,7 +148,7 @@ depends:
   daemontools, nacl, gcc, sh
 
 todo:
-  initial commit (expect changes), search optimizations
+  find something to do.
 
 install:
   ./install-nacl.sh
