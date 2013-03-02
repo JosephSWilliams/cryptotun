@@ -89,21 +89,15 @@ main(int argc, char **argv)
   unsigned char remotelongtermpk[32];
   unsigned char remoteshorttermpk[32];
 
-  int okseconds = 0;
   struct timeval now;
   struct timezone *utc = (struct timezone *)0;
   gettimeofday(&now,utc);
   int sessionexpiry = now.tv_sec - 512;
   int ping = now.tv_sec - 16;
 
-  unsigned char oktai[8] = {0};
-  unsigned char taia[16] = {0};
-  unsigned char subtai[8] = {0};
- 
-  tai_now(oktai);
-  subtai[7] = 128;
-  tai_pack(oktai,oktai);
-  tai_sub(oktai,oktai,subtai);
+  unsigned char taia[16];
+  taia_now(taia);
+  taia_pack(taia,taia);
 
   int i, n, l;
   unsigned char buffer0[2048];
@@ -281,15 +275,6 @@ main(int argc, char **argv)
       } else if (n<24+32+16) goto devread;
 
       memmove(nonce,buffer0,24);
-
-      if (!okseconds)
-      {
-        for (i=0;i<8;++i)
-        {
-          if (nonce[i] > oktai[i]){ ++okseconds; break; }
-          if (nonce[i] < oktai[i]) goto devread;
-        }
-      }
 
       l=0; for (i=0;i<16;++i)
       {
