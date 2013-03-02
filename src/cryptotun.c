@@ -3,11 +3,13 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/fcntl.h>
+#include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <net/if.h>
 #include <stdio.h>
 #include <taia.h>
 #include <poll.h>
@@ -16,8 +18,6 @@
   #include <linux/if_ether.h>
   #include <linux/if_tun.h>
 #endif
-#include <sys/ioctl.h>
-#include <net/if.h>
 
 #define USAGE "\
 cryptotun: usage:\n\
@@ -360,4 +360,5 @@ main(int argc, char **argv)
     poll(fds,2,16384);
 
   }
+
 }
