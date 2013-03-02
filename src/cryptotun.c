@@ -1,4 +1,3 @@
-//#include <nacl/crypto_scalarmult_curve25519.h>
 #include <nacl/randombytes.h>
 #include <nacl/crypto_box.h>
 #include <sys/socket.h>
