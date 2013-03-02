@@ -286,7 +286,7 @@ main(int argc, char **argv)
       {
         for (i=0;i<8;++i)
         {
-          if (nonce[i] > oktai[i]){ ++okseconds ; break; }
+          if (nonce[i] > oktai[i]){ ++okseconds; break; }
           if (nonce[i] < oktai[i]) goto devread;
         }
       }
