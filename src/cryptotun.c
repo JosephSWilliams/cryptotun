@@ -252,7 +252,7 @@ main(int argc, char **argv)
 
     }
 
-    devwrite: if (fds[0].revents & POLLIN)
+    devwrite: if (fds[0].revents)
     {
 
       n = recvfrom(3,buffer0,1500,0,(struct sockaddr *)&recvaddr,&recvaddr_len);
@@ -261,7 +261,7 @@ main(int argc, char **argv)
       {
         fprintf(stderr,"cryptotun: fatal error: recvfrom(3,buffer0,1500,0,(struct sockaddr *)&recvaddr,&recvaddr_len)\n");
         exit(255);
-      } else if (n<24+32+16) goto devread;
+      } if (n<24+32+16) goto devread;
 
       memmove(nonce,buffer0,24);
 
@@ -309,7 +309,7 @@ main(int argc, char **argv)
 
     }
 
-    devread: if (fds[1].revents & POLLIN)
+    devread: if (fds[1].revents)
     {
 
       memset(buffer0,0,16);
