@@ -312,7 +312,6 @@ main(int argc, char **argv)
     devread: if (fds[1].revents)
     {
 
-      memset(buffer0,0,16);
       memset(buffer1,0,32);
 
       n = read(4,buffer1+32,1500);
@@ -323,6 +322,7 @@ main(int argc, char **argv)
         exit(255);
       }
 
+      memset(buffer0,0,16);
       randombytes(nonce,24);
 
       if (crypto_box_afternm(buffer0,buffer1,32+n,nonce,shorttermsharedk)<0)
