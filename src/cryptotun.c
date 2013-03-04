@@ -158,7 +158,7 @@ main(int argc, char **argv)
 
   #else
 
-    char ifr_name[5+16];
+    char ifr_name[5+16]={0};
     memmove(&ifr_name,"/dev/",5);
     memmove(&ifr_name[5],argv[7],strlen(argv[7]));
 
