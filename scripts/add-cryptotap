@@ -26,7 +26,7 @@ test -L /services/cryptotap-$5/cryptotun || \
 
 cp run.tap /services/cryptotap-$5/run || exit 255
 
-test -L /services/cryptotap-$5/ || \
+test -L /service/cryptotap-$5/ || \
   ln -s /services/cryptotap-$5/ /service/cryptotap-$5 || exit 255
 
 ./pubkey /services/cryptotap-$5/env/SECKEY

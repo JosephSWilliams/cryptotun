@@ -170,5 +170,4 @@ usage:
   #
   # talamon> tap addr with be 1.122.22.2/30 for example
 
-
   ./scripts/add-cryptotap --rtfm
