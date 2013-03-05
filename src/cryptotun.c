@@ -6,6 +6,7 @@
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#include <signal.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -94,17 +95,25 @@ main(int argc, char **argv)
   unsigned char buffer0[2048];
   unsigned char buffer1[2048];
 
+  void zeroexit(int signum)
+  {
+    memset(buffer0,0,2048); memset(buffer1,0,2048);
+    memset(longtermsk,0,32); memset(shorttermsk,0,32);
+    memset(longtermsharedk,0,32); memset(shorttermsharedk,0,32);
+    exit(signum);
+  } signal(SIGINT,zeroexit); signal(SIGHUP,zeroexit); signal(SIGTERM,zeroexit);
+
   if ((open(argv[5],0)!=4)||(read(4,longtermsk,32)<32))
   {
     fprintf(stderr,"cryptotun: fatal error: failed read(4,%s,32)\n",argv[5]);
-    exit(64);
+    zeroexit(64);
   }
   close(4);
 
   if (strlen(argv[6])<64)
   {
     fprintf(stderr,"cryptotun: fatal error: invalid remotelongtermpk\n");
-    exit(64);
+    zeroexit(64);
   }
 
   l=0; for (i=0;i<64;++i)
@@ -112,25 +121,25 @@ main(int argc, char **argv)
     if (((unsigned char)argv[6][i]>47)&&((unsigned char)argv[6][i]<58)) remotelongtermpk[l] = (unsigned char)argv[6][i] - 48 << 4;
     else { if (((unsigned char)argv[6][i]>64)&&((unsigned char)argv[6][i]<71)) remotelongtermpk[l] = (unsigned char)argv[6][i] - 55 << 4;
     else { if (((unsigned char)argv[6][i]>96)&&((unsigned char)argv[6][i]<103)) remotelongtermpk[l] = (unsigned char)argv[6][i] - 87 << 4;
-    else { fprintf(stderr,"cryptotun: fatal error: invalid remotelongtermpk\n"); exit(64);
+    else { fprintf(stderr,"cryptotun: fatal error: invalid remotelongtermpk\n"); zeroexit(64);
     }}} ++i;
     if (((unsigned char)argv[6][i]>47)&&((unsigned char)argv[6][i]<58)) remotelongtermpk[l] += (unsigned char)argv[6][i] - 48;
     else { if (((unsigned char)argv[6][i]>64)&&((unsigned char)argv[6][i]<71)) remotelongtermpk[l] += (unsigned char)argv[6][i] - 55;
     else { if (((unsigned char)argv[6][i]>96)&&((unsigned char)argv[6][i]<103)) remotelongtermpk[l] += (unsigned char)argv[6][i] - 87;
-    else { fprintf(stderr,"cryptotun: fatal error: invalid remotelongtermpk\n"); exit(64);
+    else { fprintf(stderr,"cryptotun: fatal error: invalid remotelongtermpk\n"); zeroexit(64);
     }}} ++l;
   }
 
   if (crypto_box_beforenm(longtermsharedk,remotelongtermpk,longtermsk)<0)
   {
     fprintf(stderr,"cryptotun: fatal error: failed crypto_box_beforenm(longtermsharedk,remotelongtermpk,longtermsk)\n");
-    exit(255);
+    zeroexit(255);
   }
 
   if ((!strlen(argv[7]))||(strlen(argv[7])>16))
   {
     fprintf(stderr,"cryptotun: fatal error: invalid ifr_name %s\n",argv[7]);
-    exit(64);
+    zeroexit(64);
   }
 
   #ifdef linux
@@ -138,7 +147,7 @@ main(int argc, char **argv)
     if (open("/dev/net/tun",2)!=4)
     {
       fprintf(stderr,"cryptotun: fatal error: open(\"/dev/net/tun\",2) != fd4\n");
-      exit(255);
+      zeroexit(255);
     }
 
     struct ifreq ifr;
@@ -153,7 +162,7 @@ main(int argc, char **argv)
     if (ioctl(4,TUNSETIFF,(void *)&ifr)<0)
     {
       fprintf(stderr,"cryptotun: fatal error: ioctl(4,TUNSETIFF,(void *)&ifr)\n");
-      exit(255);
+      zeroexit(255);
     }
 
   #else
@@ -165,7 +174,7 @@ main(int argc, char **argv)
     if (open(ifr_name,2)!=4)
     {
       fprintf(stderr,"cryptotun: fatal error: open(ifr_name,2) != fd4\n");
-      exit(255);
+      zeroexit(255);
     }
 
     int ifr_flag = IFF_POINTOPOINT | IFF_MULTICAST;
@@ -173,21 +182,21 @@ main(int argc, char **argv)
     if (ioctl(4,TUNSIFMODE,&ifr_flag)<0)
     {
       fprintf(stderr,"cryptotun: fatal error: ioctl(4,TUNSIFMODE,&ifr_flag)\n");
-      exit(255);
+      zeroexit(255);
     }
 
     ifr_flag = 0;
     if (ioctl(4,TUNSLMODE,&ifr_flag)<0)
     {
       fprintf(stderr,"cryptotun: fatal error: ioctl(4,TUNSLMODE,&ifr_flag)\n");
-      exit(255);
+      zeroexit(255);
     }
 
     ifr_flag = 0;
     if (ioctl(4,TUNSIFHEAD,&ifr_flag)<0)
     {
       fprintf(stderr,"cryptotun: fatal error: ioctl(4,TUNSIFHEAD,&ifr_flag)\n");
-      exit(255);
+      zeroexit(255);
     }
 
   #endif
@@ -209,13 +218,13 @@ main(int argc, char **argv)
       if (crypto_box_keypair(shorttermpk,shorttermsk)<0)
       {
         fprintf(stderr,"cryptotun: fatal error: failed crypto_box_keypair()\n");
-        exit(255);
+        zeroexit(255);
       }
 
       if (crypto_box_beforenm(shorttermsharedk,remoteshorttermpk,shorttermsk)<0)
       {
         fprintf(stderr,"cryptotun: fatal error: failed crypto_box_beforenm(shorttermsharedk,remoteshorttermpk,shorttermsk)\n");
-        exit(255);
+        zeroexit(255);
       }
 
       sessionexpiry = now.tv_sec;
@@ -236,7 +245,7 @@ main(int argc, char **argv)
       if (crypto_box_afternm(buffer0,buffer1,32+32,nonce,longtermsharedk)<0)
       {
         fprintf(stderr,"cryptotun: fatal error: crypto_box_afternm(buffer0,buffer1,32+32,nonce,longtermsharedk)\n");
-        exit(255);
+        zeroexit(255);
       }
 
       memmove(buffer1,nonce,24);
@@ -260,7 +269,7 @@ main(int argc, char **argv)
       if (n<0)
       {
         fprintf(stderr,"cryptotun: fatal error: recvfrom(3,buffer0,1500,0,(struct sockaddr *)&recvaddr,&recvaddr_len)\n");
-        exit(255);
+        zeroexit(255);
       } if (n<24+32+16) goto devread;
 
       memmove(nonce,buffer0,24);
@@ -289,7 +298,7 @@ main(int argc, char **argv)
         if (crypto_box_beforenm(shorttermsharedk,remoteshorttermpk,shorttermsk)<0)
         {
           fprintf(stderr,"cryptotun: fatal error: failed crypto_box_beforenm(shorttermsharedk,remoteshorttermpk,shorttermsk)\n");
-          exit(255);
+          zeroexit(255);
         }
 
       } if (n==24+32+16) goto devread;
@@ -304,7 +313,7 @@ main(int argc, char **argv)
       if (write(4,buffer0+32,-24-32-24+n-16-16)<0)
       {
         fprintf(stderr,"cryptotun: fatal error: write(4,buffer0+32,-24-32-24+n-16-16)\n");
-        exit(255);
+        zeroexit(255);
       }
 
     }
@@ -319,7 +328,7 @@ main(int argc, char **argv)
       if (n<0)
       {
         fprintf(stderr,"cryptotun: fatal error: read(4,buffer1+32,1500)\n");
-        exit(255);
+        zeroexit(255);
       }
 
       memset(buffer0,0,16);
@@ -328,7 +337,7 @@ main(int argc, char **argv)
       if (crypto_box_afternm(buffer0,buffer1,32+n,nonce,shorttermsharedk)<0)
       {
         fprintf(stderr,"cryptotun: fatal error: crypto_box_afternm(buffer0,buffer1,32+n,nonce,shorttermsharedk)\n");
-        exit(255);
+        zeroexit(255);
       }
 
       memset(buffer1,0,32);
@@ -344,7 +353,7 @@ main(int argc, char **argv)
       if (crypto_box_afternm(buffer0,buffer1,32+32+24+n+16,nonce,longtermsharedk)<0)
       {
         fprintf(stderr,"cryptotun: fatal error: crypto_box_afternm(buffer0,buffer1,32+32+24+n+16,nonce,longtermsharedk)\n");
-        exit(255);
+        zeroexit(255);
       }
 
       memmove(buffer1,nonce,24);

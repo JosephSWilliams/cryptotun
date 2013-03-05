@@ -139,6 +139,12 @@ packet and cannot decrypt the short-term layer, CryptoTUN
 quickly informs your peer of your current short-term public
 key.
 
+If CryptoTUN catches an error, SIGINT, SIGHUP, or SIGTERM it will
+also zero out any buffers containing potential plaintext or
+secret data before it exits. This tries to prevent recovering
+sensitive information from RAM after execution or from a cold
+boot attack.
+
 thanks:
   djb -> daemontools and nacl are unmatched
   ivo smits -> insights on nacl and tun/tap devices

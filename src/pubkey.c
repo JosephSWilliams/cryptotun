@@ -12,6 +12,7 @@ if (argc>1){
   if (read(i,sk,32)<32) exit(64);
   close(i);
   crypto_scalarmult_curve25519_base(pk,sk);
+  memset(sk,0,32);
   printf("pubkey: ");
   for (i=0;i<32;++i) printf("%02x",pk[i]);
   printf("\n");
