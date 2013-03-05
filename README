@@ -145,7 +145,7 @@ thanks:
   talamon -> testing and commiting scripts for tap support
 
 depends:
-  daemontools, nacl, gcc, sh
+  daemontools, nacl, libtai, gcc, sh
 
 todo:
   find something to do.
