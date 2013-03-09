@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/sh -ve
 
 [ -e /usr/lib/libnacl.so ] && \
   echo 'mv /usr/lib/libnacl.so /usr/lib/breaksBC.so' 1>&2 && \
