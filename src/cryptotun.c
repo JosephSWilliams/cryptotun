@@ -86,7 +86,7 @@ main(int argc, char **argv)
   struct timezone *utc = (struct timezone *)0;
   gettimeofday(&now,utc);
   int sessionexpiry = now.tv_sec - 512;
-  int ping = now.tv_sec - 16;
+  int update = now.tv_sec - 16;
 
   unsigned char taia[16];
   taia_now(taia);
@@ -229,11 +229,11 @@ main(int argc, char **argv)
       }
 
       sessionexpiry = now.tv_sec;
-      ping -= 16;
+      update -= 16;
 
     }
 
-    if (now.tv_sec - ping >= 16){ sendping:
+    if (now.tv_sec - update >= 16){ sendupdate:
 
       memset(buffer0,0,16);
       memset(buffer1,0,32);
@@ -257,7 +257,7 @@ main(int argc, char **argv)
         fprintf(stderr,"cryptotun: error: sendto(3,buffer1,24+32+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))\n");
       }
 
-      ping = now.tv_sec;
+      update = now.tv_sec;
       goto devread;
 
     }
@@ -312,13 +312,13 @@ main(int argc, char **argv)
       if (crypto_box_open_afternm(buffer0,buffer1,16+-24-32-24+n-16,nonce,shorttermsharedk0)<0)
       {
 
-        if (crypto_box_open_afternm(buffer0,buffer1,16+-24-32-24+n-16,nonce,shorttermsharedk1)<0) goto sendping;
+        if (crypto_box_open_afternm(buffer0,buffer1,16+-24-32-24+n-16,nonce,shorttermsharedk1)<0) goto sendupdate;
 
         if (write(4,buffer0+32,-24-32-24+n-16-16)<0)
         {
           fprintf(stderr,"cryptotun: fatal error: write(4,buffer0+32,-24-32-24+n-16-16)\n");
           zeroexit(255);
-        } goto sendping;
+        } goto sendupdate;
 
       } if (memcmp(shorttermsharedk1,shorttermsharedk0,32)) memmove(shorttermsharedk1,shorttermsharedk0,32);
 
@@ -374,7 +374,7 @@ main(int argc, char **argv)
       if (sendto(3,buffer1,24+32+24+n+16+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))<0)
       {
         fprintf(stderr,"cryptotun: error: sendto(3,buffer1,24+32+24+n+16+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))\n");
-      } else ping = now.tv_sec;
+      } else update = now.tv_sec;
 
     }
 
