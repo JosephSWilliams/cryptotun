@@ -77,9 +77,10 @@ main(int argc, char **argv)
   unsigned char shorttermpk[32];
   unsigned char shorttermsk[32];
   unsigned char longtermsharedk[32];
-  unsigned char shorttermsharedk[32];
   unsigned char remotelongtermpk[32];
   unsigned char remoteshorttermpk[32];
+  unsigned char shorttermsharedk0[32];
+  unsigned char shorttermsharedk1[32];
 
   struct timeval now;
   struct timezone *utc = (struct timezone *)0;
@@ -99,7 +100,7 @@ main(int argc, char **argv)
   {
     memset(buffer0,0,2048); memset(buffer1,0,2048);
     memset(longtermsk,0,32); memset(shorttermsk,0,32);
-    memset(longtermsharedk,0,32); memset(shorttermsharedk,0,32);
+    memset(longtermsharedk,0,32); memset(shorttermsharedk0,0,32); memset(shorttermsharedk1,0,32);
     exit(signum);
   } signal(SIGINT,zeroexit); signal(SIGHUP,zeroexit); signal(SIGTERM,zeroexit);
 
@@ -221,9 +222,9 @@ main(int argc, char **argv)
         zeroexit(255);
       }
 
-      if (crypto_box_beforenm(shorttermsharedk,remoteshorttermpk,shorttermsk)<0)
+      if (crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)<0)
       {
-        fprintf(stderr,"cryptotun: fatal error: failed crypto_box_beforenm(shorttermsharedk,remoteshorttermpk,shorttermsk)\n");
+        fprintf(stderr,"cryptotun: fatal error: failed crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)\n");
         zeroexit(255);
       }
 
@@ -295,9 +296,9 @@ main(int argc, char **argv)
 
         memmove(remoteshorttermpk,buffer0+32,32);
 
-        if (crypto_box_beforenm(shorttermsharedk,remoteshorttermpk,shorttermsk)<0)
+        if (crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)<0)
         {
-          fprintf(stderr,"cryptotun: fatal error: failed crypto_box_beforenm(shorttermsharedk,remoteshorttermpk,shorttermsk)\n");
+          fprintf(stderr,"cryptotun: fatal error: failed crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)\n");
           zeroexit(255);
         }
 
@@ -308,7 +309,18 @@ main(int argc, char **argv)
       memmove(buffer1+16,buffer0+32+32+24,-24-32-24+n-16);
       memset(buffer0,0,32);
 
-      if (crypto_box_open_afternm(buffer0,buffer1,16+-24-32-24+n-16,nonce,shorttermsharedk)<0) goto sendping;
+      if (crypto_box_open_afternm(buffer0,buffer1,16+-24-32-24+n-16,nonce,shorttermsharedk0)<0)
+      {
+
+        if (crypto_box_open_afternm(buffer0,buffer1,16+-24-32-24+n-16,nonce,shorttermsharedk1)<0) goto sendping;
+
+        if (write(4,buffer0+32,-24-32-24+n-16-16)<0)
+        {
+          fprintf(stderr,"cryptotun: fatal error: write(4,buffer0+32,-24-32-24+n-16-16)\n");
+          zeroexit(255);
+        } goto sendping;
+
+      } memmove(shorttermsharedk1,shorttermsharedk0,32);
 
       if (write(4,buffer0+32,-24-32-24+n-16-16)<0)
       {
@@ -334,9 +346,9 @@ main(int argc, char **argv)
       memset(buffer0,0,16);
       randombytes(nonce,24);
 
-      if (crypto_box_afternm(buffer0,buffer1,32+n,nonce,shorttermsharedk)<0)
+      if (crypto_box_afternm(buffer0,buffer1,32+n,nonce,shorttermsharedk0)<0)
       {
-        fprintf(stderr,"cryptotun: fatal error: crypto_box_afternm(buffer0,buffer1,32+n,nonce,shorttermsharedk)\n");
+        fprintf(stderr,"cryptotun: fatal error: crypto_box_afternm(buffer0,buffer1,32+n,nonce,shorttermsharedk0)\n");
         zeroexit(255);
       }
 
