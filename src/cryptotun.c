@@ -320,7 +320,7 @@ main(int argc, char **argv)
           zeroexit(255);
         } goto sendping;
 
-      } memmove(shorttermsharedk1,shorttermsharedk0,32);
+      } if (memcmp(shorttermsharedk1,shorttermsharedk0,32)) memmove(shorttermsharedk1,shorttermsharedk0,32);
 
       if (write(4,buffer0+32,-24-32-24+n-16-16)<0)
       {
