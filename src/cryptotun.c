@@ -108,8 +108,7 @@ main(int argc, char **argv)
   {
     fprintf(stderr,"cryptotun: fatal error: failed read(4,%s,32)\n",argv[5]);
     zeroexit(64);
-  }
-  close(4);
+  } close(4);
 
   if (strlen(argv[6])<64)
   {
@@ -179,7 +178,6 @@ main(int argc, char **argv)
     }
 
     int ifr_flag = IFF_POINTOPOINT | IFF_MULTICAST;
-
     if (ioctl(4,TUNSIFMODE,&ifr_flag)<0)
     {
       fprintf(stderr,"cryptotun: fatal error: ioctl(4,TUNSIFMODE,&ifr_flag)\n");
