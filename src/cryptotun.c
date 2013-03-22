@@ -300,7 +300,7 @@ main(int argc, char **argv)
           zeroexit(255);
         }
 
-      } if (n==24+32+16) goto devread;
+      } if (n<=24+32+24+16+16) goto devread;
 
       memset(buffer1,0,16);
       memmove(nonce,buffer0+32+32,24);
