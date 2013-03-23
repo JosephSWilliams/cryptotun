@@ -274,7 +274,7 @@ main(int argc, char **argv)
 
       l=0; for (i=0;i<16;++i)
       {
-        if (nonce[i] > taia[i]){ l = 1; break; }
+        if (nonce[i] > taia[i]){ ++l; break; }
         if (nonce[i] < taia[i]) goto devread;
       } if (!l) goto devread;
 
