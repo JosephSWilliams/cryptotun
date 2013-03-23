@@ -40,19 +40,19 @@ main(int argc, char **argv)
     exit(64);
   }
 
-  int optval=1;
+  int i, l, n=1;
   struct sockaddr_in sock, remoteaddr, recvaddr;
   socklen_t recvaddr_len = sizeof(struct sockaddr_in);
 
   if (socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP)!=3)
   {
-    fprintf(stderr,"cryptotun: fatal error: failed socket()\n");
+    fprintf(stderr,"cryptotun: fatal error: failed socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP) != fd3\n");
     exit(64);
   }
 
-  if (setsockopt(3,SOL_SOCKET,SO_REUSEADDR,&optval,sizeof(optval))<0)
+  if (setsockopt(3,SOL_SOCKET,SO_REUSEADDR,&n,sizeof(n))<0)
   {
-    fprintf(stderr,"cryptotun: fatal error: failed setsockopt()\n");
+    fprintf(stderr,"cryptotun: fatal error: failed setsockopt(3,SOL_SOCKET,SO_REUSEADDR,&n,sizeof(n))\n");
     exit(64);
   }
 
@@ -63,7 +63,7 @@ main(int argc, char **argv)
 
   if (bind(3,(struct sockaddr*)&sock,sizeof(sock))<0)
   {
-    fprintf(stderr,"cryptotun: fatal error: failed bind()\n");
+    fprintf(stderr,"cryptotun: fatal error: failed bind(3,(struct sockaddr*)&sock,sizeof(sock))\n");
     exit(64);
   }
 
@@ -92,7 +92,6 @@ main(int argc, char **argv)
   taia_now(taia);
   taia_pack(taia,taia);
 
-  int i, n, l;
   unsigned char buffer0[2048];
   unsigned char buffer1[2048];
 
@@ -144,9 +143,9 @@ main(int argc, char **argv)
 
   #ifdef linux
 
-    if (open("/dev/net/tun",2)!=4)
+    if (open("/dev/net/tun",O_RDWR)!=4)
     {
-      fprintf(stderr,"cryptotun: fatal error: open(\"/dev/net/tun\",2) != fd4\n");
+      fprintf(stderr,"cryptotun: fatal error: open(\"/dev/net/tun\",O_RDWR) != fd4\n");
       zeroexit(255);
     }
 
@@ -171,9 +170,9 @@ main(int argc, char **argv)
     memmove(&ifr_name,"/dev/",5);
     memmove(&ifr_name[5],argv[7],strlen(argv[7]));
 
-    if (open(ifr_name,2)!=4)
+    if (open(ifr_name,O_RDWR)!=4)
     {
-      fprintf(stderr,"cryptotun: fatal error: open(ifr_name,2) != fd4\n");
+      fprintf(stderr,"cryptotun: fatal error: open(ifr_name,O_RDWR) != fd4\n");
       zeroexit(255);
     }
 
@@ -216,7 +215,7 @@ main(int argc, char **argv)
 
       if (crypto_box_keypair(shorttermpk,shorttermsk)<0)
       {
-        fprintf(stderr,"cryptotun: fatal error: failed crypto_box_keypair()\n");
+        fprintf(stderr,"cryptotun: fatal error: failed crypto_box_keypair(shorttermpk,shorttermsk)\n");
         zeroexit(255);
       }
 
@@ -276,7 +275,7 @@ main(int argc, char **argv)
       l=0; for (i=0;i<16;++i)
       {
         if (nonce[i] > taia[i]){ l = 1; break; }
-        if (nonce[i] < taia[i]){ l = 0; break; }
+        if (nonce[i] < taia[i]) goto devread;
       } if (!l) goto devread;
 
       memset(buffer1,0,16);
