@@ -136,7 +136,7 @@ main(int argc, char **argv)
     zeroexit(255);
   }
 
-  if ((!strlen(argv[7]))||(strlen(argv[7])>16))
+  if ((!strlen(argv[7]))||(strlen(argv[7])>=16))
   {
     fprintf(stderr,"cryptotun: fatal error: invalid ifr_name %s\n",argv[7]);
     zeroexit(64);
