@@ -281,7 +281,7 @@ main(int argc, char **argv)
         if (nonce[i] < taia[i]) goto devread;
       } if (!l) goto devread;
 
-      for (i=2048-16;i>0;i-=16) if (!memcmp(taiacache+i,nonce,16)) goto devread;
+      for (i=2048-16;i>-16;i-=16) if (!memcmp(taiacache+i,nonce,16)) goto devread;
 
       memset(buffer1,0,16);
       memmove(buffer1+16,buffer0+24,-24+n);
