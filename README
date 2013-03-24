@@ -139,7 +139,9 @@ packet and cannot decrypt the short-term layer, CryptoTUN
 quickly informs your peer of your current short-term public
 key. CryptoTUN will use the last known short-term shared key
 to prevent packetloss and immediately update the failover key
-when a successful decryption occurs from a new key.
+when a successful decryption occurs from a new key. UDP's
+problematic packet reordering is handled smoothly by CryptoTUN's
+small taiacache.
 
 If CryptoTUN catches an error, SIGINT, SIGHUP, or SIGTERM it will
 also zero out any buffers containing potential plaintext or

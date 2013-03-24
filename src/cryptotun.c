@@ -90,9 +90,10 @@ main(int argc, char **argv)
   int sessionexpiry = now.tv_sec - 512;
   int update = now.tv_sec - 16;
 
+  int updatetaia = 0;
   unsigned char taia[16];
-  taia_now(taia);
-  taia_pack(taia,taia);
+  unsigned char taiacache[2048] = {0};
+  taia_now(taia); taia_pack(taia,taia);
 
   unsigned char buffer0[2048];
   unsigned char buffer1[2048];
@@ -280,6 +281,8 @@ main(int argc, char **argv)
         if (nonce[i] < taia[i]) goto devread;
       } if (!l) goto devread;
 
+      for (i=2048-16;i>0;i-=16) if (!memcmp(taiacache+i,nonce,16)) goto devread;
+
       memset(buffer1,0,16);
       memmove(buffer1+16,buffer0+24,-24+n);
       memset(buffer0,0,32);
@@ -288,7 +291,21 @@ main(int argc, char **argv)
 
       remoteaddr.sin_addr = recvaddr.sin_addr;
       remoteaddr.sin_port = recvaddr.sin_port;
-      memmove(taia,nonce,16);
+
+      if (updatetaia==128)
+      {
+
+        memmove(taia,nonce,16);
+        updatetaia = 0;
+        goto cachetaia;
+
+      } else { cachetaia:
+
+        memmove(taiacache,taiacache+16,2048-16);
+        memmove(taiacache+2048-16,nonce,16);
+        ++updatetaia;
+
+      }
 
       if (memcmp(remoteshorttermpk,buffer0+32,32))
       {
