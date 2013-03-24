@@ -228,7 +228,7 @@ main(int argc, char **argv)
       }
 
       sessionexpiry = now.tv_sec;
-      update -= 16;
+      goto sendupdate;
 
     }
 
