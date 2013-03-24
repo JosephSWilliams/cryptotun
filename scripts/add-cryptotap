@@ -7,7 +7,7 @@ mkdir -p /services/cryptotap-$5/env || exit 255
 
 head -c 32 /dev/urandom > /services/cryptotap-$5/env/SECKEY || exit 255
 
-printf 1024 > /services/cryptotap-$5/env/MTU || exit 255
+printf 1328 > /services/cryptotap-$5/env/MTU || exit 255
 
 printf $1 > /services/cryptotap-$5/env/LOCALIP || exit 255
 printf $2 > /services/cryptotap-$5/env/LOCALPORT || exit 255

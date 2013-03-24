@@ -18,6 +18,8 @@
 #ifdef linux
   #include <linux/if_ether.h>
   #include <linux/if_tun.h>
+#else
+  #include <net/if_tun.h>
 #endif
 
 #define USAGE "\
