@@ -297,7 +297,7 @@ main(int argc, char **argv)
       remoteaddr.sin_addr = recvaddr.sin_addr;
       remoteaddr.sin_port = recvaddr.sin_port;
 
-      if (updatetaia==64)
+      if (updatetaia == 32)
       {
 
         memmove(taia0,taia1,16);
