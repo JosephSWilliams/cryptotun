@@ -92,11 +92,12 @@ main(int argc, char **argv)
   int jitter = now.tv_sec;
 
   int updatetaia = 0;
-  unsigned char taia[16];
+  unsigned char taia0[16], taia1[16];
   unsigned char taiacache[2048] = {0};
 
-  taia_now(taia);
-  taia_pack(taia,taia);
+  taia_now(taia0);
+  taia_pack(taia0,taia0);
+  memmove(taia1,taia0,16);
 
   unsigned char buffer0[2048];
   unsigned char buffer1[2048];
@@ -281,8 +282,8 @@ main(int argc, char **argv)
 
       l=0; for (i=0;i<16;++i)
       {
-        if (nonce[i] > taia[i]){ ++l; break; }
-        if (nonce[i] < taia[i]) goto devread;
+        if (nonce[i] > taia0[i]){ ++l; break; }
+        if (nonce[i] < taia0[i]) goto devread;
       } if (!l) goto devread;
 
       for (i=2048-16;i>-16;i-=16) if (!memcmp(taiacache+i,nonce,16)) goto devread;
@@ -299,7 +300,9 @@ main(int argc, char **argv)
       if (updatetaia==64)
       {
 
-        memmove(taia,taiacache+1024,16);
+        memmove(taia0,taia1,16);
+        taia_now(taia1);
+        taia_pack(taia1,taia1);
         updatetaia = 0;
         goto cachetaia;
 
