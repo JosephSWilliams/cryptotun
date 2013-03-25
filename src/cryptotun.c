@@ -93,7 +93,9 @@ main(int argc, char **argv)
   int updatetaia = 0;
   unsigned char taia[16];
   unsigned char taiacache[2048] = {0};
-  taia_now(taia); taia_pack(taia,taia);
+
+  taia_now(taia);
+  taia_pack(taia,taia);
 
   unsigned char buffer0[2048];
   unsigned char buffer1[2048];
@@ -292,10 +294,10 @@ main(int argc, char **argv)
       remoteaddr.sin_addr = recvaddr.sin_addr;
       remoteaddr.sin_port = recvaddr.sin_port;
 
-      if (updatetaia==128)
+      if (updatetaia==64)
       {
 
-        memmove(taia,nonce,16);
+        memmove(taia,taiacache+1024,16);
         updatetaia = 0;
         goto cachetaia;
 
