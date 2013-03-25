@@ -29,7 +29,7 @@ cryptotun:   local port\n\
 cryptotun:   remote addr\n\
 cryptotun:   remote port\n\
 cryptotun:   path/seckey\n\
-cryptotun:   pubkey\n\
+cryptotun:   remote pubkey\n\
 cryptotun:   ifr_name\n\
 "
 

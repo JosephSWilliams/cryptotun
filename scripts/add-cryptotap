@@ -1,5 +1,5 @@
 #!/bin/sh -e
-[ -z $9 ] && echo $0' <local ip> <local port> <remote ip> <remote port> <interface> <tap addr w/ subnet> <gateway> <broadcast> <pubkey>' 2>&1 && \
+[ -z $9 ] && echo $0' <local ip> <local port> <remote ip> <remote port> <interface> <tap addr w/ subnet> <gateway> <broadcast> <remote pubkey>' 2>&1 && \
   exit 64
 
 mkdir -p /services/cryptotap-$5/ || exit 255

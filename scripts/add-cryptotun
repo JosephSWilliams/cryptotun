@@ -1,5 +1,5 @@
 #!/bin/sh -e
-[ -z $9 ] && echo $0' <local ip> <local port> <remote ip> <remote port> <interface> <tun addr> <gateway> <ptp> <pubkey>' 2>&1 && \
+[ -z $9 ] && echo $0' <local ip> <local port> <remote ip> <remote port> <interface> <tun addr> <gateway> <ptp> <remote pubkey>' 2>&1 && \
   exit 64
 
 mkdir -p /services/cryptotun-$5/ || exit 255
