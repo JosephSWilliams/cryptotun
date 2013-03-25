@@ -353,7 +353,7 @@ main(int argc, char **argv)
         zeroexit(255);
       }
 
-      if (jitter) if (now.tv_sec - jitter >= 64)
+      if ((jitter) && (now.tv_sec - jitter >= 64))
       {
         memmove(shorttermsharedk1,shorttermsharedk0,32);
         jitter = 0;
