@@ -344,7 +344,7 @@ main(int argc, char **argv)
       {
         fprintf(stderr,"cryptotun: fatal error: write(4,buffer0+32,-24-32-24+n-16-16)\n");
         zeroexit(255);
-      }
+      } update = now.tv_sec;
 
     }
 
