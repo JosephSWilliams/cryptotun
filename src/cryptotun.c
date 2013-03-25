@@ -89,6 +89,7 @@ main(int argc, char **argv)
   gettimeofday(&now,utc);
   int sessionexpiry = now.tv_sec - 512;
   int update = now.tv_sec - 16;
+  int jitter = now.tv_sec;
 
   int updatetaia = 0;
   unsigned char taia[16];
@@ -161,7 +162,9 @@ main(int argc, char **argv)
     if (!getenv("IFF_TAP"))
     {
       ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
-    } else ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
+    } else {
+      ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
+    }
 
     if (ioctl(4,TUNSETIFF,(void *)&ifr)<0)
     {
@@ -182,20 +185,19 @@ main(int argc, char **argv)
     }
 
     int ifr_flag = IFF_POINTOPOINT | IFF_MULTICAST;
+
     if (ioctl(4,TUNSIFMODE,&ifr_flag)<0)
     {
       fprintf(stderr,"cryptotun: fatal error: ioctl(4,TUNSIFMODE,&ifr_flag)\n");
       zeroexit(255);
-    }
+    } ifr_flag = 0;
 
-    ifr_flag = 0;
     if (ioctl(4,TUNSLMODE,&ifr_flag)<0)
     {
       fprintf(stderr,"cryptotun: fatal error: ioctl(4,TUNSLMODE,&ifr_flag)\n");
       zeroexit(255);
     }
 
-    ifr_flag = 0;
     if (ioctl(4,TUNSIFHEAD,&ifr_flag)<0)
     {
       fprintf(stderr,"cryptotun: fatal error: ioctl(4,TUNSIFHEAD,&ifr_flag)\n");
@@ -312,6 +314,7 @@ main(int argc, char **argv)
       if (memcmp(remoteshorttermpk,buffer0+32,32))
       {
 
+        jitter = now.tv_sec;
         memmove(remoteshorttermpk,buffer0+32,32);
 
         if (crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)<0)
@@ -330,6 +333,7 @@ main(int argc, char **argv)
       if (crypto_box_open_afternm(buffer0,buffer1,16+-24-32-24+n-16,nonce,shorttermsharedk0)<0)
       {
 
+        jitter = now.tv_sec;
         memset(remoteshorttermpk,0,32);
         memmove(shorttermsharedk0,shorttermsharedk1,32);
 
@@ -341,12 +345,18 @@ main(int argc, char **argv)
           zeroexit(255);
         } goto sendupdate;
 
-      } if (memcmp(shorttermsharedk1,shorttermsharedk0,32)) memmove(shorttermsharedk1,shorttermsharedk0,32);
+      }
 
       if (write(4,buffer0+32,-24-32-24+n-16-16)<0)
       {
         fprintf(stderr,"cryptotun: fatal error: write(4,buffer0+32,-24-32-24+n-16-16)\n");
         zeroexit(255);
+      }
+
+      if (jitter)
+      {
+        if (now.tv_sec - jitter >= 64) memmove(shorttermsharedk1,shorttermsharedk0,32);
+        jitter = 0;
       } update = now.tv_sec;
 
     }
