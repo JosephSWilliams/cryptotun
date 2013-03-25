@@ -330,6 +330,9 @@ main(int argc, char **argv)
       if (crypto_box_open_afternm(buffer0,buffer1,16+-24-32-24+n-16,nonce,shorttermsharedk0)<0)
       {
 
+        memset(remoteshorttermpk,0,32);
+        memmove(shorttermsharedk0,shorttermsharedk1,32);
+
         if (crypto_box_open_afternm(buffer0,buffer1,16+-24-32-24+n-16,nonce,shorttermsharedk1)<0) goto sendupdate;
 
         if (write(4,buffer0+32,-24-32-24+n-16-16)<0)
