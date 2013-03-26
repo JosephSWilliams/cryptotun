@@ -326,6 +326,11 @@ main(int argc, char **argv)
           zeroexit(255);
         }
 
+      } else if ((jitter) && (now.tv_sec - jitter >= 64)) {
+
+        memmove(shorttermsharedk1,shorttermsharedk0,32);
+        jitter = 0;
+
       } if (n<=24+32+24+16+16) goto devread;
 
       memset(buffer1,0,16);
@@ -354,12 +359,6 @@ main(int argc, char **argv)
       {
         fprintf(stderr,"cryptotun: fatal error: write(4,buffer0+32,-24-32-24+n-16-16)\n");
         zeroexit(255);
-      }
-
-      if ((jitter) && (now.tv_sec - jitter >= 64))
-      {
-        memmove(shorttermsharedk1,shorttermsharedk0,32);
-        jitter = 0;
       } update = now.tv_sec;
 
     }
