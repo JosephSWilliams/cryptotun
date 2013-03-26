@@ -386,11 +386,9 @@ main(int argc, char **argv)
         zeroexit(255);
       }
 
-      memset(buffer1,0,32);
       memmove(buffer1+32,shorttermpk,32);
       memmove(buffer1+32+32,nonce,24);
       memmove(buffer1+32+32+24,buffer0+16,n+16);
-      memset(buffer0,0,16);
 
       taia_now(nonce);
       taia_pack(nonce,nonce);
