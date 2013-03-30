@@ -308,6 +308,12 @@ main(int argc, char **argv)
 
       } else { cachetaia:
 
+        for (i=0;i<16;++i)
+        {
+          if (taia0[i] > taiacache[i]) break;
+          if (taia0[i] < taiacache[i]){ memmove(taia0,taiacache,16); break; }
+        }
+
         memmove(taiacache,taiacache+16,2048-16);
         memmove(taiacache+2048-16,nonce,16);
         ++updatetaia;
