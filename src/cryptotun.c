@@ -169,7 +169,7 @@ main(int argc, char **argv)
 
     if (ioctl(4,TUNSETIFF,(void*)&ifr)<0)
     {
-      fprintf(stderr,"cryptotun: fatal error: ioctl(4,TUNSETIFF,(void *)&ifr)\n");
+      fprintf(stderr,"cryptotun: fatal error: ioctl(4,TUNSETIFF,(void*)&ifr)\n");
       zeroexit(255);
     }
 
