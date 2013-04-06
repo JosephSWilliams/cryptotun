@@ -85,7 +85,7 @@ main(int argc, char **argv)
   unsigned char shorttermsharedk1[32];
 
   struct timeval now;
-  struct timezone *utc = (struct timezone *)0;
+  struct timezone *utc = (struct timezone*)0;
   gettimeofday(&now,utc);
   int sessionexpiry = now.tv_sec - 512;
   int update = now.tv_sec - 16;
@@ -167,7 +167,7 @@ main(int argc, char **argv)
       ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
     }
 
-    if (ioctl(4,TUNSETIFF,(void *)&ifr)<0)
+    if (ioctl(4,TUNSETIFF,(void*)&ifr)<0)
     {
       fprintf(stderr,"cryptotun: fatal error: ioctl(4,TUNSETIFF,(void *)&ifr)\n");
       zeroexit(255);
@@ -185,23 +185,23 @@ main(int argc, char **argv)
       zeroexit(255);
     }
 
-    int ifr_flag = IFF_POINTOPOINT | IFF_MULTICAST;
+    n = IFF_POINTOPOINT | IFF_MULTICAST;
 
-    if (ioctl(4,TUNSIFMODE,&ifr_flag)<0)
+    if (ioctl(4,TUNSIFMODE,&n)<0)
     {
-      fprintf(stderr,"cryptotun: fatal error: ioctl(4,TUNSIFMODE,&ifr_flag)\n");
+      fprintf(stderr,"cryptotun: fatal error: ioctl(4,TUNSIFMODE,&n)\n");
       zeroexit(255);
-    } ifr_flag = 0;
+    } n = 0;
 
-    if (ioctl(4,TUNSLMODE,&ifr_flag)<0)
+    if (ioctl(4,TUNSLMODE,&n)<0)
     {
-      fprintf(stderr,"cryptotun: fatal error: ioctl(4,TUNSLMODE,&ifr_flag)\n");
+      fprintf(stderr,"cryptotun: fatal error: ioctl(4,TUNSLMODE,&n)\n");
       zeroexit(255);
     }
 
-    if (ioctl(4,TUNSIFHEAD,&ifr_flag)<0)
+    if (ioctl(4,TUNSIFHEAD,&n)<0)
     {
-      fprintf(stderr,"cryptotun: fatal error: ioctl(4,TUNSIFHEAD,&ifr_flag)\n");
+      fprintf(stderr,"cryptotun: fatal error: ioctl(4,TUNSIFHEAD,&n)\n");
       zeroexit(255);
     }
 
@@ -270,11 +270,11 @@ main(int argc, char **argv)
     devwrite: if (fds[0].revents)
     {
 
-      n = recvfrom(3,buffer0,1500,0,(struct sockaddr *)&recvaddr,&recvaddr_len);
+      n = recvfrom(3,buffer0,1500,0,(struct sockaddr*)&recvaddr,&recvaddr_len);
 
       if (n<0)
       {
-        fprintf(stderr,"cryptotun: fatal error: recvfrom(3,buffer0,1500,0,(struct sockaddr *)&recvaddr,&recvaddr_len)\n");
+        fprintf(stderr,"cryptotun: fatal error: recvfrom(3,buffer0,1500,0,(struct sockaddr*)&recvaddr,&recvaddr_len)\n");
         zeroexit(255);
       } if (n<24+32+16) goto devread;
 
