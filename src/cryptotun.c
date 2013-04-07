@@ -1,3 +1,5 @@
+#include <nacl/crypto_verify_32.h>
+#include <nacl/crypto_verify_16.h>
 #include <nacl/randombytes.h>
 #include <nacl/crypto_box.h>
 #include <sys/socket.h>
@@ -286,7 +288,7 @@ main(int argc, char **argv)
         if (nonce[i] < taia0[i]) goto devread;
       } if (!l) goto devread;
 
-      for (i=2048-16;i>-16;i-=16) if (!memcmp(taiacache+i,nonce,16)) goto devread;
+      for (i=2048-16;i>-16;i-=16) if (!crypto_verify_16(taiacache+i,nonce)) goto devread;
 
       memset(buffer1,0,16);
       memmove(buffer1+16,buffer0+24,-24+n);
@@ -320,7 +322,7 @@ main(int argc, char **argv)
 
       }
 
-      if (memcmp(remoteshorttermpk,buffer0+32,32))
+      if (crypto_verify_32(remoteshorttermpk,buffer0+32))
       {
 
         jitter = now.tv_sec;
