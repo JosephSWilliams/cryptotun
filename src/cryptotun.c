@@ -99,7 +99,7 @@ main(int argc, char **argv)
 
   taia_now(taia0);
   taia_pack(taia0,taia0);
-  memmove(taia1,taia0,16);
+  memcpy(taia1,taia0,16);
 
   unsigned char buffer0[2048];
   unsigned char buffer1[2048];
@@ -178,8 +178,8 @@ main(int argc, char **argv)
   #else
 
     char ifr_name[5+16]={0};
-    memmove(&ifr_name,"/dev/",5);
-    memmove(&ifr_name[5],argv[7],strlen(argv[7]));
+    memcpy(&ifr_name,"/dev/",5);
+    memcpy(&ifr_name[5],argv[7],strlen(argv[7]));
 
     if (open(ifr_name,O_RDWR)!=4)
     {
@@ -244,7 +244,7 @@ main(int argc, char **argv)
 
       memset(buffer0,0,16);
       memset(buffer1,0,32);
-      memmove(buffer1+32,shorttermpk,32);
+      memcpy(buffer1+32,shorttermpk,32);
 
       taia_now(nonce);
       taia_pack(nonce,nonce);
@@ -256,8 +256,8 @@ main(int argc, char **argv)
         zeroexit(255);
       }
 
-      memmove(buffer1,nonce,24);
-      memmove(buffer1+24,buffer0+16,32+16);
+      memcpy(buffer1,nonce,24);
+      memcpy(buffer1+24,buffer0+16,32+16);
 
       if (sendto(3,buffer1,24+32+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))<0)
       {
@@ -280,7 +280,7 @@ main(int argc, char **argv)
         zeroexit(255);
       } if (n<24+32+16) goto devread;
 
-      memmove(nonce,buffer0,24);
+      memcpy(nonce,buffer0,24);
 
       l=0; for (i=0;i<16;++i)
       {
@@ -291,7 +291,7 @@ main(int argc, char **argv)
       for (i=2048-16;i>-16;i-=16) if (!crypto_verify_16(taiacache+i,nonce)) goto devread;
 
       memset(buffer1,0,16);
-      memmove(buffer1+16,buffer0+24,-24+n);
+      memcpy(buffer1+16,buffer0+24,-24+n);
       memset(buffer0,0,32);
 
       if (crypto_box_open_afternm(buffer0,buffer1,16+-24+n,nonce,longtermsharedk)<0) goto devread;
@@ -302,7 +302,7 @@ main(int argc, char **argv)
       if (updatetaia == 32)
       {
 
-        memmove(taia0,taia1,16);
+        memcpy(taia0,taia1,16);
         taia_now(taia1);
         taia_pack(taia1,taia1);
         updatetaia = 0;
@@ -313,11 +313,11 @@ main(int argc, char **argv)
         for (i=0;i<16;++i)
         {
           if (taia0[i] > taiacache[i]) break;
-          if (taia0[i] < taiacache[i]){ memmove(taia0,taiacache,16); break; }
+          if (taia0[i] < taiacache[i]){ memcpy(taia0,taiacache,16); break; }
         }
 
-        memmove(taiacache,taiacache+16,2048-16);
-        memmove(taiacache+2048-16,nonce,16);
+        memcpy(taiacache,taiacache+16,2048-16);
+        memcpy(taiacache+2048-16,nonce,16);
         ++updatetaia;
 
       }
@@ -326,7 +326,7 @@ main(int argc, char **argv)
       {
 
         jitter = now.tv_sec;
-        memmove(remoteshorttermpk,buffer0+32,32);
+        memcpy(remoteshorttermpk,buffer0+32,32);
 
         if (crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)<0)
         {
@@ -336,14 +336,14 @@ main(int argc, char **argv)
 
       } else if ((jitter) && (now.tv_sec - jitter >= 64)) {
 
-        memmove(shorttermsharedk1,shorttermsharedk0,32);
+        memcpy(shorttermsharedk1,shorttermsharedk0,32);
         jitter = 0;
 
       } if (n<=24+32+24+16+16) goto devread;
 
       memset(buffer1,0,16);
-      memmove(nonce,buffer0+32+32,24);
-      memmove(buffer1+16,buffer0+32+32+24,-24-32-24+n-16);
+      memcpy(nonce,buffer0+32+32,24);
+      memcpy(buffer1+16,buffer0+32+32+24,-24-32-24+n-16);
       memset(buffer0,0,32);
 
       if (crypto_box_open_afternm(buffer0,buffer1,16+-24-32-24+n-16,nonce,shorttermsharedk0)<0)
@@ -351,7 +351,7 @@ main(int argc, char **argv)
 
         jitter = now.tv_sec;
         memset(remoteshorttermpk,0,32);
-        memmove(shorttermsharedk0,shorttermsharedk1,32);
+        memcpy(shorttermsharedk0,shorttermsharedk1,32);
 
         if (crypto_box_open_afternm(buffer0,buffer1,16+-24-32-24+n-16,nonce,shorttermsharedk1)<0) goto sendupdate;
 
@@ -393,9 +393,9 @@ main(int argc, char **argv)
         zeroexit(255);
       }
 
-      memmove(buffer1+32,shorttermpk,32);
-      memmove(buffer1+32+32,nonce,24);
-      memmove(buffer1+32+32+24,buffer0+16,n+16);
+      memcpy(buffer1+32,shorttermpk,32);
+      memcpy(buffer1+32+32,nonce,24);
+      memcpy(buffer1+32+32+24,buffer0+16,n+16);
 
       taia_now(nonce);
       taia_pack(nonce,nonce);
@@ -407,8 +407,8 @@ main(int argc, char **argv)
         zeroexit(255);
       }
 
-      memmove(buffer1,nonce,24);
-      memmove(buffer1+24,buffer0+16,32+24+n+16+16);
+      memcpy(buffer1,nonce,24);
+      memcpy(buffer1+24,buffer0+16,32+24+n+16+16);
 
       if (sendto(3,buffer1,24+32+24+n+16+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))<0)
       {
