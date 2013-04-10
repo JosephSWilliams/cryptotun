@@ -8,8 +8,9 @@
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/time.h>
-#include <signal.h>
+#include <strings.h>
 #include <string.h>
+#include <signal.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <net/if.h>
@@ -60,7 +61,7 @@ main(int argc, char **argv)
     exit(64);
   }
 
-  memset(&sock,0,sizeof(sock));
+  bzero(&sock,sizeof(sock));
   sock.sin_family = AF_INET;
   sock.sin_addr.s_addr = inet_addr(argv[1]);
   sock.sin_port = htons(atoi(argv[2]));
@@ -71,7 +72,7 @@ main(int argc, char **argv)
     exit(64);
   }
 
-  memset(&remoteaddr,0,sizeof(remoteaddr));
+  bzero(&remoteaddr,sizeof(remoteaddr));
   remoteaddr.sin_family = AF_INET;
   remoteaddr.sin_addr.s_addr = inet_addr(argv[3]);
   remoteaddr.sin_port = htons(atoi(argv[4]));
@@ -106,9 +107,9 @@ main(int argc, char **argv)
 
   void zeroexit(int signum)
   {
-    memset(buffer0,0,2048); memset(buffer1,0,2048);
-    memset(longtermsk,0,32); memset(shorttermsk,0,32);
-    memset(longtermsharedk,0,32); memset(shorttermsharedk0,0,32); memset(shorttermsharedk1,0,32);
+    bzero(buffer0,2048); bzero(buffer1,2048);
+    bzero(longtermsk,32); bzero(shorttermsk,32);
+    bzero(longtermsharedk,32); bzero(shorttermsharedk0,32); bzero(shorttermsharedk1,32);
     exit(signum);
   } signal(SIGINT,zeroexit); signal(SIGHUP,zeroexit); signal(SIGTERM,zeroexit);
 
@@ -159,7 +160,7 @@ main(int argc, char **argv)
     }
 
     struct ifreq ifr;
-    memset(&ifr,0,sizeof(ifr));
+    bzero(&ifr,sizeof(ifr));
     strcpy(ifr.ifr_name,argv[7]);
 
     if (!getenv("IFF_TAP"))
@@ -242,8 +243,8 @@ main(int argc, char **argv)
 
     if (now.tv_sec - update >= 16){ sendupdate:
 
-      memset(buffer0,0,16);
-      memset(buffer1,0,32);
+      bzero(buffer0,16);
+      bzero(buffer1,32);
       memcpy(buffer1+32,shorttermpk,32);
 
       taia_now(nonce);
@@ -290,9 +291,9 @@ main(int argc, char **argv)
 
       for (i=2048-16;i>-16;i-=16) if (!crypto_verify_16(taiacache+i,nonce)) goto devread;
 
-      memset(buffer1,0,16);
+      bzero(buffer1,16);
       memcpy(buffer1+16,buffer0+24,-24+n);
-      memset(buffer0,0,32);
+      bzero(buffer0,32);
 
       if (crypto_box_open_afternm(buffer0,buffer1,16+-24+n,nonce,longtermsharedk)<0) goto devread;
 
@@ -341,16 +342,16 @@ main(int argc, char **argv)
 
       } if (n<=24+32+24+16+16) goto devread;
 
-      memset(buffer1,0,16);
+      bzero(buffer1,16);
       memcpy(nonce,buffer0+32+32,24);
       memcpy(buffer1+16,buffer0+32+32+24,-24-32-24+n-16);
-      memset(buffer0,0,32);
+      bzero(buffer0,32);
 
       if (crypto_box_open_afternm(buffer0,buffer1,16+-24-32-24+n-16,nonce,shorttermsharedk0)<0)
       {
 
         jitter = now.tv_sec;
-        memset(remoteshorttermpk,0,32);
+        bzero(remoteshorttermpk,32);
         memcpy(shorttermsharedk0,shorttermsharedk1,32);
 
         if (crypto_box_open_afternm(buffer0,buffer1,16+-24-32-24+n-16,nonce,shorttermsharedk1)<0) goto sendupdate;
@@ -374,7 +375,7 @@ main(int argc, char **argv)
     devread: if (fds[1].revents)
     {
 
-      memset(buffer1,0,32);
+      bzero(buffer1,32);
 
       n = read(4,buffer1+32,1500);
 
@@ -384,7 +385,7 @@ main(int argc, char **argv)
         zeroexit(255);
       }
 
-      memset(buffer0,0,16);
+      bzero(buffer0,16);
       randombytes(nonce,24);
 
       if (crypto_box_afternm(buffer0,buffer1,32+n,nonce,shorttermsharedk0)<0)
