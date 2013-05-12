@@ -26,4 +26,6 @@ export IFF_TAP=1
 
 ) &
 
-exec ./cryptotun $LOCALIP $LOCALPORT $REMOTEIP $REMOTEPORT env/SECKEY $PUBKEY $INTERFACE
+ignchld=''
+test -x ignchld && ignchild='./ignchld'
+exec $ignchld ./cryptotun $LOCALIP $LOCALPORT $REMOTEIP $REMOTEPORT env/SECKEY $PUBKEY $INTERFACE

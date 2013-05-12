@@ -25,4 +25,6 @@ export MTU=`cat env/MTU`
   ping -c 16 -I $INTERFACE $PTP -r -w 8
 ) &
 
-exec ./cryptotun $LOCALIP $LOCALPORT $REMOTEIP $REMOTEPORT env/SECKEY $PUBKEY $INTERFACE
+ignchld=''
+test -x ignchld && ignchild='./ignchld'
+exec $ignchld ./cryptotun $LOCALIP $LOCALPORT $REMOTEIP $REMOTEPORT env/SECKEY $PUBKEY $INTERFACE

@@ -21,6 +21,9 @@ printf $7 > /services/cryptotap-$5/env/GATEWAY || exit 255
 printf $8 > /services/cryptotap-$5/env/BRD || exit 255
 printf $9 > /services/cryptotap-$5/env/PUBKEY || exit 255
 
+test -L /services/cryptotap-$5/ignchld || \
+  ln -s "`pwd`"/ignchld /services/cryptotap-$5/ignchld || exit 255
+
 test -L /services/cryptotap-$5/cryptotun || \
   ln -s "`pwd`"/cryptotun /services/cryptotap-$5/cryptotun || exit 255
 
