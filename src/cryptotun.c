@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <net/if.h>
 #include <stdio.h>
+#include <errno.h>
 #include <taia.h>
 #include <poll.h>
 
@@ -162,20 +163,14 @@ main(int argc, char **argv)
     if ((tunfd=open("/dev/net/tun",O_RDWR))<0)
     {
 
-      #ifdef __ANDROID_API__
-
-        if ((tunfd=open("/dev/tun",O_RDWR))<0)
-        {
-          fprintf(stderr,"cryptotun: fatal error: open(\"/dev/tun\",O_RDWR)\n");
-          zeroexit(255);
-        }
-
-      #else
-
-        fprintf(stderr,"cryptotun: fatal error: open(\"/dev/net/tun\",O_RDWR)\n");
+      if ((errno == ENOENT) && ((tunfd=open("/dev/tun",O_RDWR))<0))
+      {
+        fprintf(stderr,"cryptotun: fatal error: open(\"/dev/tun\",O_RDWR)\n");
         zeroexit(255);
+      }
 
-      #endif
+      fprintf(stderr,"cryptotun: fatal error: open(\"/dev/net/tun\",O_RDWR)\n");
+      zeroexit(255);
 
     }
 
