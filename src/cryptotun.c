@@ -162,7 +162,7 @@ main(int argc, char **argv)
     if ((tunfd=open("/dev/net/tun",O_RDWR))<0)
     {
 
-      #ifdef ANDROID
+      #ifdef __ANDROID_API__
 
         if ((tunfd=open("/dev/tun",O_RDWR))<0)
         {
