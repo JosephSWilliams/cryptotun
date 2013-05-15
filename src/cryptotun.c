@@ -156,7 +156,7 @@ main(int argc, char **argv)
   }
 
 
-  int tunfd;
+  int tunfd = -1;
 
   #ifdef linux
 
@@ -169,8 +169,11 @@ main(int argc, char **argv)
         zeroexit(255);
       }
 
-      fprintf(stderr,"cryptotun: fatal error: open(\"/dev/net/tun\",O_RDWR)\n");
-      zeroexit(255);
+      if (tunfd<0)
+      {
+        fprintf(stderr,"cryptotun: fatal error: open(\"/dev/net/tun\",O_RDWR)\n");
+        zeroexit(255);
+      }
 
     }
 
