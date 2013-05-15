@@ -161,8 +161,22 @@ main(int argc, char **argv)
 
     if ((tunfd=open("/dev/net/tun",O_RDWR))<0)
     {
-      fprintf(stderr,"cryptotun: fatal error: open(\"/dev/net/tun\",O_RDWR) != fd4\n");
-      zeroexit(255);
+
+      #ifdef ANDROID
+
+        if ((tunfd=open("/dev/tun",O_RDWR))<0)
+        {
+          fprintf(stderr,"cryptotun: fatal error: open(\"/dev/tun\",O_RDWR)\n");
+          zeroexit(255);
+        }
+
+      #else
+
+        fprintf(stderr,"cryptotun: fatal error: open(\"/dev/net/tun\",O_RDWR)\n");
+        zeroexit(255);
+
+      #endif
+
     }
 
     struct ifreq ifr;
@@ -190,7 +204,7 @@ main(int argc, char **argv)
 
     if ((tunfd=open(ifr_name,O_RDWR))<0)
     {
-      fprintf(stderr,"cryptotun: fatal error: open(ifr_name,O_RDWR) != fd4\n");
+      fprintf(stderr,"cryptotun: fatal error: open(ifr_name,O_RDWR)\n");
       zeroexit(255);
     }
 
