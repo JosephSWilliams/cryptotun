@@ -45,19 +45,22 @@ main(int argc, char **argv)
     exit(64);
   }
 
-  int i, l, n=1;
+  int i;
+  int l;
+  int n = 1;
+  int sockfd;
   struct sockaddr_in sock, remoteaddr, recvaddr;
   socklen_t recvaddr_len = sizeof(struct sockaddr_in);
 
-  if (socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP)!=3)
+  if ((sockfd=socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP))<0)
   {
-    fprintf(stderr,"cryptotun: fatal error: failed socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP) != fd3\n");
+    fprintf(stderr,"cryptotun: fatal error: failed socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP)\n");
     exit(64);
   }
 
-  if (setsockopt(3,SOL_SOCKET,SO_REUSEADDR,&n,sizeof(n))<0)
+  if (setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,&n,sizeof(n))<0)
   {
-    fprintf(stderr,"cryptotun: fatal error: failed setsockopt(3,SOL_SOCKET,SO_REUSEADDR,&n,sizeof(n))\n");
+    fprintf(stderr,"cryptotun: fatal error: failed setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,&n,sizeof(n))\n");
     exit(64);
   }
 
@@ -66,9 +69,9 @@ main(int argc, char **argv)
   sock.sin_addr.s_addr = inet_addr(argv[1]);
   sock.sin_port = htons(atoi(argv[2]));
 
-  if (bind(3,(struct sockaddr*)&sock,sizeof(sock))<0)
+  if (bind(sockfd,(struct sockaddr*)&sock,sizeof(sock))<0)
   {
-    fprintf(stderr,"cryptotun: fatal error: failed bind(3,(struct sockaddr*)&sock,sizeof(sock))\n");
+    fprintf(stderr,"cryptotun: fatal error: failed bind(sockfd,(struct sockaddr*)&sock,sizeof(sock))\n");
     exit(64);
   }
 
@@ -113,11 +116,11 @@ main(int argc, char **argv)
     exit(signum);
   } signal(SIGINT,zeroexit); signal(SIGHUP,zeroexit); signal(SIGTERM,zeroexit);
 
-  if ((open(argv[5],0)!=4)||(read(4,longtermsk,32)<32))
+  if (((n=open(argv[5],0))<0)||(read(n,longtermsk,32)<32))
   {
-    fprintf(stderr,"cryptotun: fatal error: failed read(4,%s,32)\n",argv[5]);
+    fprintf(stderr,"cryptotun: fatal error: failed read(n,%s,32)\n",argv[5]);
     zeroexit(64);
-  } close(4);
+  } close(n);
 
   if (strlen(argv[6])<64)
   {
@@ -151,9 +154,12 @@ main(int argc, char **argv)
     zeroexit(64);
   }
 
+
+  int tunfd;
+
   #ifdef linux
 
-    if (open("/dev/net/tun",O_RDWR)!=4)
+    if ((tunfd=open("/dev/net/tun",O_RDWR))<0)
     {
       fprintf(stderr,"cryptotun: fatal error: open(\"/dev/net/tun\",O_RDWR) != fd4\n");
       zeroexit(255);
@@ -170,9 +176,9 @@ main(int argc, char **argv)
       ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
     }
 
-    if (ioctl(4,TUNSETIFF,(void*)&ifr)<0)
+    if (ioctl(tunfd,TUNSETIFF,(void*)&ifr)<0)
     {
-      fprintf(stderr,"cryptotun: fatal error: ioctl(4,TUNSETIFF,(void*)&ifr)\n");
+      fprintf(stderr,"cryptotun: fatal error: ioctl(tunfd,TUNSETIFF,(void*)&ifr)\n");
       zeroexit(255);
     }
 
@@ -182,7 +188,7 @@ main(int argc, char **argv)
     memcpy(&ifr_name,"/dev/",5);
     memcpy(&ifr_name[5],argv[7],strlen(argv[7]));
 
-    if (open(ifr_name,O_RDWR)!=4)
+    if ((tunfd=open(ifr_name,O_RDWR))<0)
     {
       fprintf(stderr,"cryptotun: fatal error: open(ifr_name,O_RDWR) != fd4\n");
       zeroexit(255);
@@ -190,30 +196,30 @@ main(int argc, char **argv)
 
     n = IFF_POINTOPOINT | IFF_MULTICAST;
 
-    if (ioctl(4,TUNSIFMODE,&n)<0)
+    if (ioctl(tunfd,TUNSIFMODE,&n)<0)
     {
-      fprintf(stderr,"cryptotun: fatal error: ioctl(4,TUNSIFMODE,&n)\n");
+      fprintf(stderr,"cryptotun: fatal error: ioctl(tunfd,TUNSIFMODE,&n)\n");
       zeroexit(255);
     } n = 0;
 
-    if (ioctl(4,TUNSLMODE,&n)<0)
+    if (ioctl(tunfd,TUNSLMODE,&n)<0)
     {
-      fprintf(stderr,"cryptotun: fatal error: ioctl(4,TUNSLMODE,&n)\n");
+      fprintf(stderr,"cryptotun: fatal error: ioctl(tunfd,TUNSLMODE,&n)\n");
       zeroexit(255);
     }
 
-    if (ioctl(4,TUNSIFHEAD,&n)<0)
+    if (ioctl(tunfd,TUNSIFHEAD,&n)<0)
     {
-      fprintf(stderr,"cryptotun: fatal error: ioctl(4,TUNSIFHEAD,&n)\n");
+      fprintf(stderr,"cryptotun: fatal error: ioctl(tunfd,TUNSIFHEAD,&n)\n");
       zeroexit(255);
     }
 
   #endif
 
   struct pollfd fds[2];
-  fds[0].fd = 3;
+  fds[0].fd = sockfd;
   fds[0].events = POLLIN;
-  fds[1].fd = 4;
+  fds[1].fd = tunfd;
   fds[1].events = POLLIN;
 
   while (1)
@@ -260,9 +266,9 @@ main(int argc, char **argv)
       memcpy(buffer1,nonce,24);
       memcpy(buffer1+24,buffer0+16,32+16);
 
-      if (sendto(3,buffer1,24+32+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))<0)
+      if (sendto(sockfd,buffer1,24+32+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))<0)
       {
-        fprintf(stderr,"cryptotun: error: sendto(3,buffer1,24+32+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))\n");
+        fprintf(stderr,"cryptotun: error: sendto(sockfd,buffer1,24+32+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))\n");
       }
 
       update = now.tv_sec;
@@ -273,11 +279,11 @@ main(int argc, char **argv)
     devwrite: if (fds[0].revents)
     {
 
-      n = recvfrom(3,buffer0,1500,0,(struct sockaddr*)&recvaddr,&recvaddr_len);
+      n = recvfrom(sockfd,buffer0,1500,0,(struct sockaddr*)&recvaddr,&recvaddr_len);
 
       if (n<0)
       {
-        fprintf(stderr,"cryptotun: fatal error: recvfrom(3,buffer0,1500,0,(struct sockaddr*)&recvaddr,&recvaddr_len)\n");
+        fprintf(stderr,"cryptotun: fatal error: recvfrom(sockfd,buffer0,1500,0,(struct sockaddr*)&recvaddr,&recvaddr_len)\n");
         zeroexit(255);
       } if (n<24+32+16) goto devread;
 
@@ -356,17 +362,17 @@ main(int argc, char **argv)
 
         if (crypto_box_open_afternm(buffer0,buffer1,16+-24-32-24+n-16,nonce,shorttermsharedk1)<0) goto sendupdate;
 
-        if (write(4,buffer0+32,-24-32-24+n-16-16)<0)
+        if (write(tunfd,buffer0+32,-24-32-24+n-16-16)<0)
         {
-          fprintf(stderr,"cryptotun: fatal error: write(4,buffer0+32,-24-32-24+n-16-16)\n");
+          fprintf(stderr,"cryptotun: fatal error: write(tunfd,buffer0+32,-24-32-24+n-16-16)\n");
           zeroexit(255);
         } goto sendupdate;
 
       }
 
-      if (write(4,buffer0+32,-24-32-24+n-16-16)<0)
+      if (write(tunfd,buffer0+32,-24-32-24+n-16-16)<0)
       {
-        fprintf(stderr,"cryptotun: fatal error: write(4,buffer0+32,-24-32-24+n-16-16)\n");
+        fprintf(stderr,"cryptotun: fatal error: write(tunfd,buffer0+32,-24-32-24+n-16-16)\n");
         zeroexit(255);
       } update = now.tv_sec;
 
@@ -377,11 +383,11 @@ main(int argc, char **argv)
 
       bzero(buffer1,32);
 
-      n = read(4,buffer1+32,1500);
+      n = read(tunfd,buffer1+32,1500);
 
       if (n<0)
       {
-        fprintf(stderr,"cryptotun: fatal error: read(4,buffer1+32,1500)\n");
+        fprintf(stderr,"cryptotun: fatal error: read(tunfd,buffer1+32,1500)\n");
         zeroexit(255);
       }
 
@@ -411,9 +417,9 @@ main(int argc, char **argv)
       memcpy(buffer1,nonce,24);
       memcpy(buffer1+24,buffer0+16,32+24+n+16+16);
 
-      if (sendto(3,buffer1,24+32+24+n+16+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))<0)
+      if (sendto(sockfd,buffer1,24+32+24+n+16+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))<0)
       {
-        fprintf(stderr,"cryptotun: error: sendto(3,buffer1,24+32+24+n+16+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))\n");
+        fprintf(stderr,"cryptotun: error: sendto(sockfd,buffer1,24+32+24+n+16+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))\n");
       } else update = now.tv_sec;
 
     }
