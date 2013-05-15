@@ -156,25 +156,16 @@ main(int argc, char **argv)
   }
 
 
-  int tunfd = -1;
+  int tunfd;
 
   #ifdef linux
 
-    if ((tunfd=open("/dev/net/tun",O_RDWR))<0)
+    tunfd = open("/dev/net/tun",O_RDWR);
+    if (tunfd == -1) tunfd = open("/dev/tun",O_RDWR);
+    if (tunfd == -1)
     {
-
-      if ((errno == ENOENT) && ((tunfd=open("/dev/tun",O_RDWR))<0))
-      {
-        fprintf(stderr,"cryptotun: fatal error: open(\"/dev/tun\",O_RDWR)\n");
-        zeroexit(255);
-      }
-
-      if (tunfd<0)
-      {
-        fprintf(stderr,"cryptotun: fatal error: open(\"/dev/net/tun\",O_RDWR)\n");
-        zeroexit(255);
-      }
-
+      fprintf(stderr,"cryptotun: fatal error: cannot open tun/tap device\n");
+      zeroexit(255);
     }
 
     struct ifreq ifr;
