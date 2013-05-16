@@ -161,7 +161,7 @@ main(int argc, char **argv)
   #ifdef linux
 
     tunfd = open("/dev/net/tun",O_RDWR);
-    if (tunfd == -1) tunfd = open("/dev/tun",O_RDWR);
+    if (tunfd == -1) tunfd = open("/dev/tun",O_RDWR); /* #ifdef android ? */
     if (tunfd == -1)
     {
       fprintf(stderr,"cryptotun: fatal error: cannot open tun/tap device\n");

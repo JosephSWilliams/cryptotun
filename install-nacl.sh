@@ -28,6 +28,9 @@ rm -r crypto_onetimeauth/poly1305/amd64
 # architectures by compiling with PIC.
 sed -i "s/$/ -fPIC/" okcompilers/c
 
+# android patch
+echo 'gcc' >> okcompilers/c
+
 ./do
 
 gcc okcompilers/abiname.c -o abiname
