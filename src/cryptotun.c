@@ -15,7 +15,6 @@
 #include <stdlib.h>
 #include <net/if.h>
 #include <stdio.h>
-#include <errno.h>
 #include <taia.h>
 #include <poll.h>
 
