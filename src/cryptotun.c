@@ -19,6 +19,8 @@
 #include <taia.h>
 #include <poll.h>
 
+#include "base16.h"
+
 #ifdef linux
   #include <linux/if_ether.h>
   #include <linux/if_tun.h>
@@ -46,9 +48,8 @@ main(int argc, char **argv)
     exit(64);
   }
 
-  int i;
-  int l;
-  int n = 1;
+  int i, n = 1; 
+
   int sockfd;
   struct sockaddr_in sock, remoteaddr, recvaddr;
   socklen_t recvaddr_len = sizeof(struct sockaddr_in);
@@ -117,30 +118,16 @@ main(int argc, char **argv)
     exit(signum);
   } signal(SIGINT,zeroexit); signal(SIGHUP,zeroexit); signal(SIGTERM,zeroexit);
 
-  if (((n=open(argv[5],0))<0)||(read(n,longtermsk,32)<32))
+  if (((n=open(argv[5],0))<0)||(read(n,longtermsk,32)!=32))
   {
-    fprintf(stderr,"cryptotun: fatal error: failed read(n,%s,32)\n",argv[5]);
+    fprintf(stderr,"cryptotun: fatal error: failed read(n,%s,32) == 32\n",argv[5]);
     zeroexit(64);
   } close(n);
 
-  if (strlen(argv[6])<64)
+  if ((strlen(argv[6])!=64)||(base16_decode(remotelongtermpk,argv[6],64)!=32))
   {
     fprintf(stderr,"cryptotun: fatal error: invalid remotelongtermpk\n");
     zeroexit(64);
-  }
-
-  l=0; for (i=0;i<64;++i)
-  {
-    if (((unsigned char)argv[6][i]>47)&&((unsigned char)argv[6][i]<58)) remotelongtermpk[l] = (unsigned char)argv[6][i] - 48 << 4;
-    else { if (((unsigned char)argv[6][i]>64)&&((unsigned char)argv[6][i]<71)) remotelongtermpk[l] = (unsigned char)argv[6][i] - 55 << 4;
-    else { if (((unsigned char)argv[6][i]>96)&&((unsigned char)argv[6][i]<103)) remotelongtermpk[l] = (unsigned char)argv[6][i] - 87 << 4;
-    else { fprintf(stderr,"cryptotun: fatal error: invalid remotelongtermpk\n"); zeroexit(64);
-    }}} ++i;
-    if (((unsigned char)argv[6][i]>47)&&((unsigned char)argv[6][i]<58)) remotelongtermpk[l] += (unsigned char)argv[6][i] - 48;
-    else { if (((unsigned char)argv[6][i]>64)&&((unsigned char)argv[6][i]<71)) remotelongtermpk[l] += (unsigned char)argv[6][i] - 55;
-    else { if (((unsigned char)argv[6][i]>96)&&((unsigned char)argv[6][i]<103)) remotelongtermpk[l] += (unsigned char)argv[6][i] - 87;
-    else { fprintf(stderr,"cryptotun: fatal error: invalid remotelongtermpk\n"); zeroexit(64);
-    }}} ++l;
   }
 
   if (crypto_box_beforenm(longtermsharedk,remotelongtermpk,longtermsk)<0)
@@ -154,7 +141,6 @@ main(int argc, char **argv)
     fprintf(stderr,"cryptotun: fatal error: invalid ifr_name %s\n",argv[7]);
     zeroexit(64);
   }
-
 
   int tunfd;
 
@@ -292,12 +278,7 @@ main(int argc, char **argv)
 
       memcpy(nonce,buffer0,24);
 
-      l=0; for (i=0;i<16;++i)
-      {
-        if (nonce[i] > taia0[i]){ ++l; break; }
-        if (nonce[i] < taia0[i]) goto devread;
-      } if (!l) goto devread;
-
+      if (memcmp(nonce,taia0,16)<=0) goto devread;
       for (i=2048-16;i>-16;i-=16) if (!crypto_verify_16(taiacache+i,nonce)) goto devread;
 
       bzero(buffer1,16);
