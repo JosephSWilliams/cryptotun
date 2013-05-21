@@ -170,14 +170,8 @@ devwrite:
 if (fds[0].revents) {
 
  if ((n=recvfrom(sockfd,buffer0,1500,0,(struct sockaddr*)&recvaddr,&recvaddr_len))<0) zeroexit(255);
-
- if (buffer0[16]==1) {
-  if (n<16+1+16) goto devread;
- } else {
-  if (!buffer0[16]) if (n<16+1+32) goto devread;
-  else goto devread;
- }
-
+ if ((buffer0[16]==0) && (n<16+1+32)) goto devread;
+ if ((buffer0[16]==1) && (n<16+1+16)) goto devread;
  if (memcmp(buffer0,taia0,16)<=0) goto devread;
  for (i=2048-16;i>-16;i-=16) if (!crypto_verify_16(taiacache+i,buffer0)) goto devread;
 
