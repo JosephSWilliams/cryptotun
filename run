@@ -11,6 +11,7 @@ export REMOTEPORT=`cat env/REMOTEPORT`
 export PUBKEY=`cat env/PUBKEY`
 export MTU=`cat env/MTU`
 export PROTOCOL=`cat env/PROTOCOL 2>/dev/null` || :
+export USE_PI=`cat env/USE_PI 2>/dev/null` || unset USE_PI
 
 (
   sleep 4
