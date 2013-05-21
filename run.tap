@@ -10,7 +10,7 @@ export REMOTEIP=`cat env/REMOTEIP`
 export REMOTEPORT=`cat env/REMOTEPORT`
 export PUBKEY=`cat env/PUBKEY`
 export MTU=`cat env/MTU`
-
+export PROTOCOL=`cat env/PROTOCOL 2>/dev/null` || :
 export IFF_TAP=1
 
 (
@@ -28,4 +28,4 @@ export IFF_TAP=1
 
 ignchld=''
 test -x ignchld && ignchild='./ignchld'
-exec $ignchld ./cryptotun $LOCALIP $LOCALPORT $REMOTEIP $REMOTEPORT env/SECKEY $PUBKEY $INTERFACE
+exec $ignchld ./cryptotun$PROTOCOL $LOCALIP $LOCALPORT $REMOTEIP $REMOTEPORT env/SECKEY $PUBKEY $INTERFACE

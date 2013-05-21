@@ -20,12 +20,16 @@ printf $6 > /services/cryptotun-$5/env/TUN_ADDR || exit 255
 printf $7 > /services/cryptotun-$5/env/GATEWAY || exit 255
 printf $8 > /services/cryptotun-$5/env/PTP || exit 255
 printf $9 > /services/cryptotun-$5/env/PUBKEY || exit 255
+printf 2  > /services/cryptotun-$5/env/PROTOCOL || exit 255
 
 test -L /services/cryptotun-$5/ignchld || \
   ln -s "`pwd`"/ignchld /services/cryptotun-$5/ignchld || exit 255
 
 test -L /services/cryptotun-$5/cryptotun || \
   ln -s "`pwd`"/cryptotun /services/cryptotun-$5/cryptotun || exit 255
+
+test -L /services/cryptotun-$5/cryptotun2 || \
+  ln -s "`pwd`"/cryptotun2 /services/cryptotun-$5/cryptotun2 || exit 255
 
 cp run /services/cryptotun-$5/run || exit 255
 

@@ -10,3 +10,4 @@
 gcc `cat conf-cc` $CFLAGS src/ignchld.c -o ignchld
 gcc `cat conf-cc` $CFLAGS src/pubkey.c -o pubkey -l nacl
 gcc `cat conf-cc` $CFLAGS src/cryptotun.c -o cryptotun -l tai -l nacl /usr/lib/randombytes.o
+gcc `cat conf-cc` $CFLAGS src/cryptotun2.c -o cryptotun2 -l tai -l nacl /usr/lib/randombytes.o

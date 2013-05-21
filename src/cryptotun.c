@@ -20,13 +20,6 @@
 
 #include "base16.h"
 
-#ifdef linux
-  #include <linux/if_ether.h>
-  #include <linux/if_tun.h>
-#else
-  #include <net/if_tun.h>
-#endif
-
 #define USAGE "\
 cryptotun: usage:\n\
 cryptotun:   local addr\n\
@@ -145,6 +138,9 @@ main(int argc, char **argv)
 
   #ifdef linux
 
+    #include <linux/if_tun.h>
+    #include <linux/if_ether.h>
+
     tunfd = open("/dev/net/tun",O_RDWR);
     if (tunfd == -1) tunfd = open("/dev/tun",O_RDWR); /* #ifdef android ? */
     if (tunfd == -1)
@@ -171,6 +167,8 @@ main(int argc, char **argv)
     }
 
   #else
+
+    #include <net/if_tun.h>
 
     char ifr_name[5+16]={0};
     memcpy(&ifr_name,"/dev/",5);
