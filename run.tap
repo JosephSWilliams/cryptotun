@@ -11,9 +11,9 @@ export REMOTEPORT=`cat env/REMOTEPORT`
 export PUBKEY=`cat env/PUBKEY`
 export MTU=`cat env/MTU`
 export PROTOCOL=`cat env/PROTOCOL 2>/dev/null` || :
-export USE_PI=`cat env/USE_PI 2>/dev/null` || unset USE_PI
+export USE_PI=`cat env/USE_PI 2>/dev/null` || :
+[ -z $USE_PI ] && unset USE_PI
 export IFF_TAP=1
-
 (
   sleep 4
   ip addr add $TAP_ADDR brd $BRD dev $INTERFACE scope link
