@@ -115,9 +115,8 @@ if ((!strlen(argv[7]))||(strlen(argv[7])>=16)) zeroexit(64);
  struct ifreq ifr;
  bzero(&ifr,sizeof(ifr));
  strcpy(ifr.ifr_name,argv[7]);
-// ifr.ifr_flags = (!getenv("IFF_TAP")) ? IFF_TUN : IFF_TAP;
-// ifr.ifr_flags |= (!getenv("USE_PI")) ? IFF_NO_PI : 0;
- ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
+ ifr.ifr_flags = (!getenv("IFF_TAP")) ? IFF_TUN : IFF_TAP;
+ ifr.ifr_flags |= (!getenv("USE_PI")) ? IFF_NO_PI : 0;
  if (ioctl(tunfd,TUNSETIFF,(void*)&ifr)<0) zeroexit(255);
 
 #else
