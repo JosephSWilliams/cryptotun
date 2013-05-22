@@ -35,55 +35,40 @@ main(int argc, char **argv) {
 
 if (argc<8) exit(write(2,USAGE,strlen(USAGE))&255);
 
-int i, ack, sockfd, tunfd, n = 1, init = 1;
-struct sockaddr_in sock, remoteaddr, recvaddr;
+struct timeval now;
+struct sockaddr_in sock;
+struct sockaddr_in recvaddr;
+struct sockaddr_in remoteaddr;
+struct timezone *utc = (struct timezone*)0;
 socklen_t recvaddr_len = sizeof(struct sockaddr_in);
 
-bzero(&sock,sizeof(sock));
-if (!inet_pton(AF_INET,argv[1],&sock.sin_addr.s_addr)) {
- if (!inet_pton(AF_INET6,argv[1],&sock.sin_addr.s_addr)) exit(64);
- else sock.sin_family = AF_INET6;
-} else sock.sin_family = AF_INET;
-if ((!(sock.sin_port=htons(atoi(argv[2]))))
-|| ((sockfd=socket(sock.sin_family,SOCK_DGRAM,IPPROTO_UDP))<0)
-|| (setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,&n,sizeof(n))<0)
-|| (bind(sockfd,(struct sockaddr*)&sock,sizeof(sock))<0))
-exit(64);
-
-bzero(&remoteaddr,sizeof(remoteaddr));
-if (!inet_pton(AF_INET,argv[3],&remoteaddr.sin_addr.s_addr)) {
- if (!inet_pton(AF_INET6,argv[3],&remoteaddr.sin_addr.s_addr)) exit(64);
- else remoteaddr.sin_family = AF_INET6;
-} else remoteaddr.sin_family = AF_INET;
-if (!(remoteaddr.sin_port=htons(atoi(argv[4])))) exit(64);
-
+unsigned char taia0[16];
+unsigned char taia1[16];
 unsigned char nonce[24]={0};
+unsigned char buffer0[2048];
+unsigned char buffer1[2048];
 unsigned char longtermsk[32];
 unsigned char shorttermpk[32];
 unsigned char shorttermsk[32];
+unsigned char taiacache[2048]={0};
 unsigned char longtermsharedk[32];
 unsigned char remotelongtermpk[32];
 unsigned char remoteshorttermpk[32];
 unsigned char shorttermsharedk0[32];
 unsigned char shorttermsharedk1[32];
 
-struct timeval now;
-struct timezone *utc = (struct timezone*)0;
-gettimeofday(&now,utc);
-int sessionexpiry = now.tv_sec - 512;
-int update = now.tv_sec - 16;
-int jitter = now.tv_sec;
-
+int i;
+int n;
+int ack;
+int tunfd;
+int sockfd;
+int init = 1;
+int optval = 1;
 int updatetaia = 0;
-unsigned char taia0[16], taia1[16];
-unsigned char taiacache[2048] = {0};
 
 taia_now(taia0);
 taia_pack(taia0,taia0);
 memcpy(taia1,taia0,16);
-
-unsigned char buffer0[2048];
-unsigned char buffer1[2048];
 
 void zeroexit(int signum) {
  bzero(buffer0,2048);
@@ -99,6 +84,24 @@ void zeroexit(int signum) {
 signal(SIGINT,zeroexit);
 signal(SIGHUP,zeroexit);
 signal(SIGTERM,zeroexit);
+
+bzero(&sock,sizeof(sock));
+if (!inet_pton(AF_INET,argv[1],&sock.sin_addr.s_addr)) {
+ if (!inet_pton(AF_INET6,argv[1],&sock.sin_addr.s_addr)) exit(64);
+ else sock.sin_family = AF_INET6;
+} else sock.sin_family = AF_INET;
+if ((!(sock.sin_port=htons(atoi(argv[2]))))
+|| ((sockfd=socket(sock.sin_family,SOCK_DGRAM,IPPROTO_UDP))<0)
+|| (setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,&optval,sizeof(optval))<0)
+|| (bind(sockfd,(struct sockaddr*)&sock,sizeof(sock))<0))
+exit(64);
+
+bzero(&remoteaddr,sizeof(remoteaddr));
+if (!inet_pton(AF_INET,argv[3],&remoteaddr.sin_addr.s_addr)) {
+ if (!inet_pton(AF_INET6,argv[3],&remoteaddr.sin_addr.s_addr)) exit(64);
+ else remoteaddr.sin_family = AF_INET6;
+} else remoteaddr.sin_family = AF_INET;
+if (!(remoteaddr.sin_port=htons(atoi(argv[4])))) exit(64);
 
 if (((n=open(argv[5],0))<0)||(read(n,longtermsk,32)!=32)) zeroexit(64);
 close(n);
@@ -134,10 +137,15 @@ if ((!strlen(argv[7]))||(strlen(argv[7])>=16)) zeroexit(64);
 #endif
 
 struct pollfd fds[2];
-fds[0].fd = sockfd;
 fds[0].events = POLLIN;
-fds[1].fd = tunfd;
 fds[1].events = POLLIN;
+fds[0].fd = sockfd;
+fds[1].fd = tunfd;
+
+gettimeofday(&now,utc);
+int jitter = now.tv_sec;
+int update = now.tv_sec - 16;
+int sessionexpiry = now.tv_sec - 512;
 
 while (1) {
 
@@ -171,11 +179,13 @@ devwrite:
 if (fds[0].revents) {
 
  if ((n=recvfrom(sockfd,buffer0,1500,0,(struct sockaddr*)&recvaddr,&recvaddr_len))<0) zeroexit(255);
- if (((buffer0[16]==0) && (n<16+1+16))
+
+ if ((buffer0[16]>=3)
+ || ((buffer0[16]==0) && (n<16+1+16))
  || ((buffer0[16]==1) && (n<16+1+32))
  || ((buffer0[16]==2) && (n<16+1+32))
- || (buffer0[16]>=3)
  || (memcmp(buffer0,taia0,16)<=0)) goto devread;
+
  for (i=2048-16;i>-16;i-=16) if (!crypto_verify_16(taiacache+i,buffer0)) goto devread;
 
  memcpy(nonce,buffer0,16+1);
