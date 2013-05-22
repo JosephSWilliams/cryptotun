@@ -147,17 +147,18 @@ if (now.tv_sec-sessionexpiry>=512) {
  if (crypto_box_keypair(shorttermpk,shorttermsk)<0) zeroexit(255);
  if (crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)<0) zeroexit(255);
  sessionexpiry = now.tv_sec;
+ ack = 1;
  goto sendupdate;
 }
 
-if (now.tv_sec-update>=16){ 
+if (now.tv_sec-update>=16){
 sendupdate:
  bzero(buffer0,16);
  bzero(buffer1,32);
  memcpy(buffer1+32,shorttermpk,32);
  taia_now(nonce);
  taia_pack(nonce,nonce);
- nonce[16] = 1;
+ nonce[16] = (ack) ? 2 : 1;
  if (crypto_box_afternm(buffer0,buffer1,32+32,nonce,longtermsharedk)<0) zeroexit(255);
  memcpy(buffer1,nonce,16+1);
  memcpy(buffer1+16+1,buffer0+16,32+16);
@@ -170,9 +171,10 @@ devwrite:
 if (fds[0].revents) {
 
  if ((n=recvfrom(sockfd,buffer0,1500,0,(struct sockaddr*)&recvaddr,&recvaddr_len))<0) zeroexit(255);
- if (((buffer0[16]==0) && (n<16+1+32))
- || ((buffer0[16]==1) && (n<16+1+16))
- || (buffer0[16]>=2)
+ if (((buffer0[16]==0) && (n<16+1+16))
+ || ((buffer0[16]==1) && (n<16+1+32))
+ || ((buffer0[16]==2) && (n<16+1+32))
+ || (buffer0[16]>=3)
  || (memcmp(buffer0,taia0,16)<=0)) goto devread;
  for (i=2048-16;i>-16;i-=16) if (!crypto_verify_16(taiacache+i,buffer0)) goto devread;
 
@@ -181,7 +183,7 @@ if (fds[0].revents) {
  memcpy(buffer1+16,buffer0+16+1,-16-1+n);
  bzero(buffer0,32);
 
- if (nonce[16]==1) {
+ if ((nonce[16]==1)||(nonce[16]==2)) {
   if (crypto_box_open_afternm(buffer0,buffer1,16+-16-1+n,nonce,longtermsharedk)) goto devread;
   if (crypto_verify_32(remoteshorttermpk,buffer0+32)) {
    memcpy(remoteshorttermpk,buffer0+32,32);
@@ -229,7 +231,7 @@ if (fds[0].revents) {
   ++updatetaia;
  }
 
- if ((init)||(ack)) goto sendupdate;
+ if ((init)||(ack)||(nonce[16]==2)) goto sendupdate;
 }
 
 devread:
