@@ -183,7 +183,21 @@ if (fds[0].revents) {
  memcpy(buffer1+16,buffer0+16+1,-16-1+n);
  bzero(buffer0,32);
 
- if ((nonce[16]==1)||(nonce[16]==2)) {
+ if (!nonce[16]) {
+  if ((ack=crypto_box_open_afternm(buffer0,buffer1,16+-16-1+n,nonce,shorttermsharedk0))) {
+   jitter = now.tv_sec;
+   bzero(remoteshorttermpk,32);
+   memcpy(shorttermsharedk0,shorttermsharedk1,32);
+   if (crypto_box_open_afternm(buffer0,buffer1,16+-16-1+n,nonce,shorttermsharedk1)) goto sendupdate;
+   if (write(tunfd,buffer0+32,-16-1+n-16)<0) zeroexit(255);
+  } else {
+   if (write(tunfd,buffer0+32,-16-1+n-16)<0) zeroexit(255);
+   update = now.tv_sec;
+   init = 0;
+  }
+ }
+
+ else {
   if (crypto_box_open_afternm(buffer0,buffer1,16+-16-1+n,nonce,longtermsharedk)) goto devread;
   if (crypto_verify_32(remoteshorttermpk,buffer0+32)) {
    memcpy(remoteshorttermpk,buffer0+32,32);
@@ -196,20 +210,6 @@ if (fds[0].revents) {
    jitter = 0;
   }
   ack = 0;
- }
-
- else if (!nonce[16]) {
-  if ((ack=crypto_box_open_afternm(buffer0,buffer1,16+-16-1+n,nonce,shorttermsharedk0))) {
-   jitter = now.tv_sec;
-   bzero(remoteshorttermpk,32);
-   memcpy(shorttermsharedk0,shorttermsharedk1,32);
-   if (crypto_box_open_afternm(buffer0,buffer1,16+-16-1+n,nonce,shorttermsharedk1)) goto sendupdate;
-   if (write(tunfd,buffer0+32,-16-1+n-16)<0) zeroexit(255);
-  } else {
-   if (write(tunfd,buffer0+32,-16-1+n-16)<0) zeroexit(255);
-   update = now.tv_sec;
-   init = 0;
-  }
  }
 
  remoteaddr.sin_addr = recvaddr.sin_addr;
