@@ -158,7 +158,7 @@ sendupdate:
  memcpy(buffer1+32,shorttermpk,32);
  taia_now(nonce);
  taia_pack(nonce,nonce);
- nonce[16] = (ack) ? 2 : 1;
+ nonce[16] = ((init)||(ack)) ? 2 : 1;
  if (crypto_box_afternm(buffer0,buffer1,32+32,nonce,longtermsharedk)<0) zeroexit(255);
  memcpy(buffer1,nonce,16+1);
  memcpy(buffer1+16+1,buffer0+16,32+16);
