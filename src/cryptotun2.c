@@ -35,7 +35,7 @@ main(int argc, char **argv) {
 
 if (argc<8) exit(write(2,USAGE,strlen(USAGE))&255);
 
-int i, n = 1, sockfd, tunfd, failover;
+int i, n = 1, sockfd, tunfd, failover, init = 1;
 struct sockaddr_in sock, remoteaddr, recvaddr;
 socklen_t recvaddr_len = sizeof(struct sockaddr_in);
 
@@ -187,6 +187,7 @@ if (fds[0].revents) {
    jitter = now.tv_sec;
    memcpy(remoteshorttermpk,buffer0+32,32);
    if (crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)<0) zeroexit(255);
+   if (init) { memcpy(shorttermsharedk1,shorttermsharedk0,32); --init; }
   }
   else if ((jitter) && (now.tv_sec - jitter >= 64)) {
    memcpy(shorttermsharedk1,shorttermsharedk0,32);
@@ -195,13 +196,11 @@ if (fds[0].revents) {
  }
 
  else if (!nonce[16]) {
-//  if ((i=crypto_box_open_afternm(buffer0,buffer1,16+-16-1+n,nonce,shorttermsharedk0))) {
-  if ((failover=crypto_box_open_afternm(buffer0,buffer1,16+-16-1+n,nonce,longtermsharedk))) {
+  if ((failover=crypto_box_open_afternm(buffer0,buffer1,16+-16-1+n,nonce,shorttermsharedk0))) {
    jitter = now.tv_sec;
    bzero(remoteshorttermpk,32);
    memcpy(shorttermsharedk0,shorttermsharedk1,32);
-//   if (crypto_box_open_afternm(buffer0,buffer1,16+-16-1+n,nonce,shorttermsharedk1)) goto sendupdate;
-   if (crypto_box_open_afternm(buffer0,buffer1,16+-16-1+n,nonce,longtermsharedk)) goto sendupdate;
+   if (crypto_box_open_afternm(buffer0,buffer1,16+-16-1+n,nonce,shorttermsharedk1)) goto sendupdate;
    if (write(tunfd,buffer0+32,-16-1+n-16)<0) zeroexit(255);
   } else {
    if (write(tunfd,buffer0+32,-16-1+n-16)<0) zeroexit(255);
@@ -239,8 +238,7 @@ if (fds[1].revents) {
  taia_now(nonce);
  taia_pack(nonce,nonce);
  nonce[16] = 0;
-// if (crypto_box_afternm(buffer0,buffer1,32+n,nonce,shorttermsharedk0)<0) zeroexit(255);
- if (crypto_box_afternm(buffer0,buffer1,32+n,nonce,longtermsharedk)<0) zeroexit(255);
+ if (crypto_box_afternm(buffer0,buffer1,32+n,nonce,shorttermsharedk0)<0) zeroexit(255);
  memcpy(buffer1,nonce,16+1);
  memcpy(buffer1+16+1,buffer0+16,n+16);
  if (sendto(sockfd,buffer1,16+1+n+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))+1) update = now.tv_sec;
