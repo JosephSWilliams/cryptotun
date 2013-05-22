@@ -128,11 +128,11 @@ if ((!strlen(argv[7]))||(strlen(argv[7])>=16)) zeroexit(64);
  memcpy(&ifr_name,"/dev/",5);
  memcpy(&ifr_name[5],argv[7],strlen(argv[7]));
  if ((tunfd=open(ifr_name,O_RDWR))<0) zeroexit(255);
- n = IFF_POINTOPOINT | IFF_MULTICAST;
- if (ioctl(tunfd,TUNSIFMODE,&n)<0) zeroexit(255);
- n = (!getenv("USE_PI")) ? 0 : 1;
- if (ioctl(tunfd,TUNSLMODE,&n)<0) zeroexit(255);
- if (ioctl(tunfd,TUNSIFHEAD,&n)<0) zeroexit(255);
+ int ifr_flag = IFF_POINTOPOINT | IFF_MULTICAST;
+ if (ioctl(tunfd,TUNSIFMODE,&ifr_flag)<0) zeroexit(255);
+ ifr_flag = (!getenv("USE_PI")) ? 0 : 1;
+ if (ioctl(tunfd,TUNSLMODE,&ifr_flag)<0) zeroexit(255);
+ if (ioctl(tunfd,TUNSIFHEAD,&ifr_flag)<0) zeroexit(255);
 
 #endif
 
