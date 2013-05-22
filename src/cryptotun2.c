@@ -181,12 +181,12 @@ if (fds[0].revents) {
  bzero(buffer0,32);
 
  if (nonce[16]==1) {
-  if ((i=crypto_box_open_afternm(buffer0,buffer1,16+-16-1+n,nonce,longtermsharedk))) goto devread;
+  if (crypto_box_open_afternm(buffer0,buffer1,16+-16-1+n,nonce,longtermsharedk)) goto devread;
   if (crypto_verify_32(remoteshorttermpk,buffer0+32)) {
    jitter = now.tv_sec;
    memcpy(remoteshorttermpk,buffer0+32,32);
    if (crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)<0) zeroexit(255);
-   goto sendupdate;
+   i = 1;
   }
   else if ((jitter) && (now.tv_sec - jitter >= 64)) {
    memcpy(shorttermsharedk1,shorttermsharedk0,32);
