@@ -35,7 +35,7 @@ main(int argc, char **argv) {
 
 if (argc<8) exit(write(2,USAGE,strlen(USAGE))&255);
 
-int i, n = 1, sockfd, tunfd;
+int i, n = 1, sockfd, tunfd, failover;
 struct sockaddr_in sock, remoteaddr, recvaddr;
 socklen_t recvaddr_len = sizeof(struct sockaddr_in);
 
@@ -182,12 +182,11 @@ if (fds[0].revents) {
  bzero(buffer0,32);
 
  if (nonce[16]==1) {
-  if (crypto_box_open_afternm(buffer0,buffer1,16+-16-1+n,nonce,longtermsharedk)) goto devread;
+  if ((failover=crypto_box_open_afternm(buffer0,buffer1,16+-16-1+n,nonce,longtermsharedk))) goto devread;
   if (crypto_verify_32(remoteshorttermpk,buffer0+32)) {
    jitter = now.tv_sec;
    memcpy(remoteshorttermpk,buffer0+32,32);
    if (crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)<0) zeroexit(255);
-   i = 1;
   }
   else if ((jitter) && (now.tv_sec - jitter >= 64)) {
    memcpy(shorttermsharedk1,shorttermsharedk0,32);
@@ -197,7 +196,7 @@ if (fds[0].revents) {
 
  else if (!nonce[16]) {
 //  if ((i=crypto_box_open_afternm(buffer0,buffer1,16+-16-1+n,nonce,shorttermsharedk0))) {
-  if ((i=crypto_box_open_afternm(buffer0,buffer1,16+-16-1+n,nonce,longtermsharedk))) {
+  if ((failover=crypto_box_open_afternm(buffer0,buffer1,16+-16-1+n,nonce,longtermsharedk))) {
    jitter = now.tv_sec;
    bzero(remoteshorttermpk,32);
    memcpy(shorttermsharedk0,shorttermsharedk1,32);
@@ -229,7 +228,7 @@ if (fds[0].revents) {
   ++updatetaia;
  }
 
- if (i) goto sendupdate;
+ if (failover) goto sendupdate;
 }
 
 devread:
