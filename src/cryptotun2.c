@@ -59,8 +59,6 @@ unsigned char shorttermsharedk1[32];
 
 int i;
 int n;
-int syn;
-int ack;
 int tunfd;
 int sockfd;
 int init = 1;
@@ -156,7 +154,6 @@ if (now.tv_sec-sessionexpiry>=512) {
  if (crypto_box_keypair(shorttermpk,shorttermsk)) zeroexit(255);
  if (crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)) zeroexit(255);
  sessionexpiry = now.tv_sec;
- syn = 1;
  goto sendupdate;
 }
 
@@ -167,7 +164,7 @@ sendupdate:
  memcpy(buffer1+32,shorttermpk,32);
  taia_now(nonce);
  taia_pack(nonce,nonce);
- nonce[16] = ((init)||(syn)||(ack)) ? 2 : 1;
+ nonce[16] = (init) ? 2 : 1;
  if (crypto_box_afternm(buffer0,buffer1,32+32,nonce,longtermsharedk)<0) zeroexit(255);
  memcpy(buffer1,nonce,16+1);
  memcpy(buffer1+16+1,buffer0+16,32+16);
@@ -194,39 +191,7 @@ if (fds[0].revents) {
  memcpy(buffer1+16,buffer0+16+1,-16-1+n);
  bzero(buffer0,32);
 
- if (nonce[16]) {
-  if (crypto_box_open_afternm(buffer0,buffer1,16-16-1+n,nonce,longtermsharedk)) goto devread;
-  if (crypto_verify_32(remoteshorttermpk,buffer0+32)) {
-   memcpy(remoteshorttermpk,buffer0+32,32);
-   if (crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)) zeroexit(255);
-   jitter = now.tv_sec;
-  }
-  else if ((jitter) && (now.tv_sec - jitter >= 64)) {
-   memcpy(shorttermsharedk1,shorttermsharedk0,32);
-   jitter = 0;
-  }
-  ack = 0;
- }
-
- else {
-  if (crypto_box_open_afternm(buffer0,buffer1,16-16-1+n,nonce,longtermsharedk)) goto devread;
-  memcpy(buffer1+16,buffer0+32,-16-1+n-16);
-  if ((ack=crypto_box_open_afternm(buffer0,buffer1,16-16-1+n-16,nonce,shorttermsharedk0))) {
-   jitter = now.tv_sec;
-   bzero(remoteshorttermpk,32);
-   memcpy(shorttermsharedk0,shorttermsharedk1,32);
-   if (crypto_box_open_afternm(buffer0,buffer1,16-16-1+n-16,nonce,shorttermsharedk1)) goto sendupdate;
-   if (write(tunfd,buffer0+32,-16-1+n-16-16)<0) zeroexit(255);
-  } else {
-   if (write(tunfd,buffer0+32,-16-1+n-16-16)<0) zeroexit(255);
-   update = now.tv_sec;
-   if (init) {
-    memcpy(shorttermsharedk1,shorttermsharedk0,32);
-    init = 0;
-   }
-   syn = 0;
-  }
- }
+ if (crypto_box_open_afternm(buffer0,buffer1,16-16-1+n,nonce,longtermsharedk)) goto devread;
 
  remoteaddr.sin_addr = recvaddr.sin_addr;
  remoteaddr.sin_port = recvaddr.sin_port;
@@ -247,7 +212,36 @@ if (fds[0].revents) {
   ++updatetaia;
  }
 
- if ((init)||(ack)||(nonce[16]==2)) goto sendupdate;
+ if (nonce[16]) {
+  if (crypto_verify_32(remoteshorttermpk,buffer0+32)) {
+   memcpy(remoteshorttermpk,buffer0+32,32);
+   if (crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)) zeroexit(255);
+   jitter = now.tv_sec;
+  }
+  else if ((jitter) && (now.tv_sec - jitter >= 64)) {
+   memcpy(shorttermsharedk1,shorttermsharedk0,32);
+   jitter = 0;
+  }
+  if (nonce[16]==2) goto sendupdate;
+ }
+
+ else {
+  memcpy(buffer1+16,buffer0+32,-16-1+n-16);
+  if (crypto_box_open_afternm(buffer0,buffer1,16-16-1+n-16,nonce,shorttermsharedk0)) {
+   jitter = now.tv_sec;
+   bzero(remoteshorttermpk,32);
+   memcpy(shorttermsharedk0,shorttermsharedk1,32);
+   if (crypto_box_open_afternm(buffer0,buffer1,16-16-1+n-16,nonce,shorttermsharedk1)) goto sendupdate;
+   if (write(tunfd,buffer0+32,-16-1+n-16-16)<0) zeroexit(255);
+  } else {
+   if (write(tunfd,buffer0+32,-16-1+n-16-16)<0) zeroexit(255);
+   update = now.tv_sec;
+   if (init) {
+    memcpy(shorttermsharedk1,shorttermsharedk0,32);
+    init = 0;
+   }
+  }
+ }
 }
 
 devread:
