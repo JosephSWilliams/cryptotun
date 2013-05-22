@@ -66,10 +66,6 @@ int init = 1;
 int optval = 1;
 int updatetaia = 0;
 
-taia_now(taia0);
-taia_pack(taia0,taia0);
-memcpy(taia1,taia0,16);
-
 void zeroexit(int signum) {
  bzero(buffer0,2048);
  bzero(buffer1,2048);
@@ -141,6 +137,10 @@ fds[0].events = POLLIN;
 fds[1].events = POLLIN;
 fds[0].fd = sockfd;
 fds[1].fd = tunfd;
+
+taia_now(taia0);
+taia_pack(taia0,taia0);
+taia_pack(taia1,taia0);
 
 gettimeofday(&now,utc);
 int jitter = now.tv_sec;
