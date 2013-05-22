@@ -186,6 +186,7 @@ if (fds[0].revents) {
    jitter = now.tv_sec;
    memcpy(remoteshorttermpk,buffer0+32,32);
    if (crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)<0) zeroexit(255);
+   goto sendupdate;
   }
   else if ((jitter) && (now.tv_sec - jitter >= 64)) {
    memcpy(shorttermsharedk1,shorttermsharedk0,32);
