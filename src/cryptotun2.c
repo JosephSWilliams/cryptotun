@@ -170,9 +170,10 @@ devwrite:
 if (fds[0].revents) {
 
  if ((n=recvfrom(sockfd,buffer0,1500,0,(struct sockaddr*)&recvaddr,&recvaddr_len))<0) zeroexit(255);
- if ((buffer0[16]==0) && (n<16+1+32)) goto devread;
- if ((buffer0[16]==1) && (n<16+1+16)) goto devread;
- if (memcmp(buffer0,taia0,16)<=0) goto devread;
+ if (((buffer0[16]==0) && (n<16+1+32))
+ || ((buffer0[16]==1) && (n<16+1+16))
+ || (buffer0[16]>=2)
+ || (memcmp(buffer0,taia0,16)<=0)) goto devread;
  for (i=2048-16;i>-16;i-=16) if (!crypto_verify_16(taiacache+i,buffer0)) goto devread;
 
  memcpy(nonce,buffer0,16+1);
@@ -195,11 +196,13 @@ if (fds[0].revents) {
  }
 
  else if (!nonce[16]) {
-  if ((i=crypto_box_open_afternm(buffer0,buffer1,16+-16-1+n,nonce,shorttermsharedk0))) {
+//  if ((i=crypto_box_open_afternm(buffer0,buffer1,16+-16-1+n,nonce,shorttermsharedk0))) {
+  if ((i=crypto_box_open_afternm(buffer0,buffer1,16+-16-1+n,nonce,longtermsharedk))) {
    jitter = now.tv_sec;
    bzero(remoteshorttermpk,32);
    memcpy(shorttermsharedk0,shorttermsharedk1,32);
-   if (crypto_box_open_afternm(buffer0,buffer1,16+-16-1+n,nonce,shorttermsharedk1)) goto sendupdate;
+//   if (crypto_box_open_afternm(buffer0,buffer1,16+-16-1+n,nonce,shorttermsharedk1)) goto sendupdate;
+   if (crypto_box_open_afternm(buffer0,buffer1,16+-16-1+n,nonce,longtermsharedk)) goto sendupdate;
    if (write(tunfd,buffer0+32,-16-1+n-16)<0) zeroexit(255);
   } else {
    if (write(tunfd,buffer0+32,-16-1+n-16)<0) zeroexit(255);
@@ -237,7 +240,8 @@ if (fds[1].revents) {
  taia_now(nonce);
  taia_pack(nonce,nonce);
  nonce[16] = 0;
- if (crypto_box_afternm(buffer0,buffer1,32+n,nonce,shorttermsharedk0)<0) zeroexit(255);
+// if (crypto_box_afternm(buffer0,buffer1,32+n,nonce,shorttermsharedk0)<0) zeroexit(255);
+ if (crypto_box_afternm(buffer0,buffer1,32+n,nonce,longtermsharedk)<0) zeroexit(255);
  memcpy(buffer1,nonce,16+1);
  memcpy(buffer1+16+1,buffer0+16,n+16);
  if (sendto(sockfd,buffer1,16+1+n+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))+1) update = now.tv_sec;
