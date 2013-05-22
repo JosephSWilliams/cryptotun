@@ -4,6 +4,7 @@
 #include <nacl/crypto_box.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <sys/fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
