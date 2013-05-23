@@ -45,11 +45,11 @@ socklen_t recvaddr_len = sizeof(struct sockaddr_in);
 unsigned char taia0[16];
 unsigned char taia1[16];
 unsigned char nonce[24]={0};
-unsigned char buffer0[2048];
-unsigned char buffer1[2048];
 unsigned char longtermsk[32];
 unsigned char shorttermpk[32];
 unsigned char shorttermsk[32];
+unsigned char buffer16[2048]={0};
+unsigned char buffer32[2048]={0};
 unsigned char taiacache[2048]={0};
 unsigned char longtermsharedk[32];
 unsigned char remotelongtermpk[32];
@@ -61,13 +61,12 @@ int i;
 int n;
 int tunfd;
 int sockfd;
-int init = 1;
 int optval = 1;
 int updatetaia = 0;
 
 void zeroexit(int signum) {
- bzero(buffer0,2048);
- bzero(buffer1,2048);
+ bzero(buffer16,2048);
+ bzero(buffer32,2048);
  bzero(longtermsk,32);
  bzero(shorttermsk,32);
  bzero(longtermsharedk,32);
@@ -150,48 +149,34 @@ while (1) {
 
 gettimeofday(&now,utc);
 
-if (now.tv_sec-sessionexpiry>=512) {
+if (now.tv_sec - sessionexpiry >= 512) {
  if (crypto_box_keypair(shorttermpk,shorttermsk)) zeroexit(255);
  if (crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)) zeroexit(255);
  sessionexpiry = now.tv_sec;
  goto sendupdate;
 }
 
-if (now.tv_sec-update>=16) {
+if (now.tv_sec - update >= 16) {
 sendupdate:
- bzero(buffer0,16);
- bzero(buffer1,32);
- memcpy(buffer1+32,shorttermpk,32);
+ memcpy(buffer32+32,shorttermpk,32);
  taia_now(nonce);
  taia_pack(nonce,nonce);
- nonce[16] = (init) ? 2 : 1;
- if (crypto_box_afternm(buffer0,buffer1,32+32,nonce,longtermsharedk)<0) zeroexit(255);
- memcpy(buffer1,nonce,16+1);
- memcpy(buffer1+16+1,buffer0+16,32+16);
- sendto(sockfd,buffer1,16+1+32+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr));
+ if (crypto_box_afternm(buffer16,buffer32,32+32,nonce,longtermsharedk)) zeroexit(255);
+ memcpy(buffer32+32,nonce,16);
+ memcpy(buffer32+32+16,buffer16+16,32+16);
+ sendto(sockfd,buffer32+32,16+32+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr));
  update = now.tv_sec;
  goto devread;
 }
 
 devwrite:
 if (fds[0].revents) {
-
- if ((n=recvfrom(sockfd,buffer0,1500,0,(struct sockaddr*)&recvaddr,&recvaddr_len))<0) zeroexit(255);
-
- if ((buffer0[16]>=3)
- || ((buffer0[16]==2) && (n<16+1+32))
- || ((buffer0[16]==1) && (n<16+1+32))
- || ((buffer0[16]==0) && (n<16+1+16+16))
- || (memcmp(buffer0,taia0,16)<=0)) goto devread;
-
- for (i=2048-16;i>-16;i-=16) if (!crypto_verify_16(taiacache+i,buffer0)) goto devread;
-
- memcpy(nonce,buffer0,16+1);
- bzero(buffer1,16);
- memcpy(buffer1+16,buffer0+16+1,-16-1+n);
- bzero(buffer0,32);
-
- if (crypto_box_open_afternm(buffer0,buffer1,16-16-1+n,nonce,longtermsharedk)) goto devread;
+ if ((n=recvfrom(sockfd,buffer16+16,1500,0,(struct sockaddr*)&recvaddr,&recvaddr_len))<0) zeroexit(255);
+ if (n<16+32+16) goto devread;
+ memcpy(nonce,buffer16+16,16);
+ if (memcmp(nonce,taia0,16)<=0) goto devread;
+ for (i=2048-16;i>-16;i-=16) if (!crypto_verify_16(taiacache+i,nonce)) goto devread;
+ if (crypto_box_open_afternm(buffer32,buffer16,16-16+n,nonce,longtermsharedk)<0) goto devread;
 
  remoteaddr.sin_addr = recvaddr.sin_addr;
  remoteaddr.sin_port = recvaddr.sin_port;
@@ -206,58 +191,49 @@ if (fds[0].revents) {
 
  else {
  cachetaia:
-  if (memcmp(taia0,taiacache,16)<0) memcpy(taia0,taiacache,16);
+  if (memcmp(taia0,taiacache,16)<=0) memcpy(taia0,taiacache,16);
   memcpy(taiacache,taiacache+16,2048-16);
   memcpy(taiacache+2048-16,nonce,16);
   ++updatetaia;
  }
 
- if (nonce[16]) {
-  if (crypto_verify_32(remoteshorttermpk,buffer0+32)) {
-   memcpy(remoteshorttermpk,buffer0+32,32);
-   if (crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)) zeroexit(255);
-   jitter = now.tv_sec;
-  }
-  else if ((jitter) && (now.tv_sec - jitter >= 64)) {
-   memcpy(shorttermsharedk1,shorttermsharedk0,32);
-   jitter = 0;
-  }
-  if (nonce[16]==2) goto sendupdate;
+ if (crypto_verify_32(remoteshorttermpk,buffer32+32)) {
+  jitter = now.tv_sec;
+  memcpy(remoteshorttermpk,buffer32+32,32);
+  if (crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)<0) zeroexit(255);
+ } else if ((jitter) && (now.tv_sec - jitter >= 64)) {
+  memcpy(shorttermsharedk1,shorttermsharedk0,32);
+  jitter = 0;
  }
 
- else {
-  memcpy(buffer1+16,buffer0+32,-16-1+n-16);
-  if (crypto_box_open_afternm(buffer0,buffer1,16-16-1+n-16,nonce,shorttermsharedk0)) {
-   jitter = now.tv_sec;
-   bzero(remoteshorttermpk,32);
-   memcpy(shorttermsharedk0,shorttermsharedk1,32);
-   if (crypto_box_open_afternm(buffer0,buffer1,16-16-1+n-16,nonce,shorttermsharedk1)) goto sendupdate;
-   if (write(tunfd,buffer0+32,-16-1+n-16-16)<0) zeroexit(255);
-  } else {
-   if (write(tunfd,buffer0+32,-16-1+n-16-16)<0) zeroexit(255);
-   update = now.tv_sec;
-   if (init) {
-    memcpy(shorttermsharedk1,shorttermsharedk0,32);
-    init = 0;
-   }
-  }
+ if (n<16+32+16+16) goto devread;
+ memcpy(buffer16+16,buffer32+32,-16-32+n-16);
+
+ if (crypto_box_open_afternm(buffer32,buffer16,16-16-32+n-16,nonce,shorttermsharedk0)<0) {
+  jitter = now.tv_sec;
+  bzero(remoteshorttermpk,32);
+  memcpy(shorttermsharedk0,shorttermsharedk1,32);
+  if (crypto_box_open_afternm(buffer32,buffer32,16-16-32+n-16,nonce,shorttermsharedk1)<0) goto sendupdate;
+  if (write(tunfd,buffer32+32,-16-32+n-16-16)<0) zeroexit(255);
+  goto sendupdate;
  }
+
+ if (write(tunfd,buffer32+32,-16-32+n-16-16)<0) zeroexit(255);
+ update = now.tv_sec;
 }
 
 devread:
 if (fds[1].revents) {
- bzero(buffer1,32);
- if ((n=read(tunfd,buffer1+32,1500))<0) zeroexit(255);
- bzero(buffer0,16);
+ if ((n=read(tunfd,buffer32+32,1500))<0) zeroexit(255);
  taia_now(nonce);
  taia_pack(nonce,nonce);
- nonce[16] = 0;
- if (crypto_box_afternm(buffer0,buffer1,32+n,nonce,shorttermsharedk0)) zeroexit(255);
- memcpy(buffer1+32,buffer0+16,n+16);
- if (crypto_box_afternm(buffer0,buffer1,32+n+16,nonce,longtermsharedk)) zeroexit(255);
- memcpy(buffer1,nonce,16+1);
- memcpy(buffer1+16+1,buffer0+16,n+16+16);
- if (sendto(sockfd,buffer1,16+1+n+16+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))+1) update = now.tv_sec;
+ if (crypto_box_afternm(buffer16,buffer32,32+n,nonce,shorttermsharedk0)<0) zeroexit(255);
+ memcpy(buffer32+32,shorttermpk,32);
+ memcpy(buffer32+32+32,buffer16+16,n+16);
+ if (crypto_box_afternm(buffer16,buffer32,32+32+n+16,nonce,longtermsharedk)<0) zeroexit(255);
+ memcpy(buffer32+32,nonce,16);
+ memcpy(buffer32+32+16,buffer16+16,32+n+16+16);
+ if (sendto(sockfd,buffer32+32,16+32+n+16+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))==16+32+n+16+16) update = now.tv_sec;
 }
 
 poll(fds,2,16384);
