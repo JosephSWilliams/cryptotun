@@ -1,6 +1,5 @@
 #include <nacl/crypto_verify_32.h>
 #include <nacl/crypto_verify_16.h>
-#include <nacl/randombytes.h>
 #include <nacl/crypto_box.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
