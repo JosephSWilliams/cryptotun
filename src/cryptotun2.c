@@ -176,6 +176,7 @@ if (fds[0].revents) {
  memcpy(nonce,buffer16+16,16);
  if (memcmp(nonce,taia0,16)<=0) goto devread;
  for (i=2048-16;i>-16;i-=16) if (!crypto_verify_16(taiacache+i,nonce)) goto devread;
+ memcpy(buffer16+16,buffer16+16+16,-16+n);
  if (crypto_box_open_afternm(buffer32,buffer16,16-16+n,nonce,longtermsharedk)<0) goto devread;
 
  remoteaddr.sin_addr = recvaddr.sin_addr;
