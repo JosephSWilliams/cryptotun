@@ -208,7 +208,7 @@ if (fds[0].revents) {
  }
 
  if (n<16+32+16+16) goto devread;
- memcpy(buffer16+16,buffer32+32,-16-32+n-16);
+ memcpy(buffer16+16,buffer32+32+32,-16-32+n-16);
 
  if (crypto_box_open_afternm(buffer32,buffer16,16-16-32+n-16,nonce,shorttermsharedk0)<0) {
   jitter = now.tv_sec;
