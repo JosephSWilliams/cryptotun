@@ -191,7 +191,7 @@ if (fds[0].revents) {
 
  else {
  cachetaia:
-  if (memcmp(taia0,taiacache,16)<=0) memcpy(taia0,taiacache,16);
+  if (memcmp(taia0,taiacache,16)<0) memcpy(taia0,taiacache,16);
   memcpy(taiacache,taiacache+16,2048-16);
   memcpy(taiacache+2048-16,nonce,16);
   ++updatetaia;
