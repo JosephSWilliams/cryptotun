@@ -60,7 +60,6 @@ int i;
 int n;
 int tunfd;
 int sockfd;
-int optval = 1;
 int updatetaia = 0;
 
 void zeroexit(int signum) {
@@ -85,7 +84,7 @@ if (!inet_pton(AF_INET,argv[1],&sock.sin_addr.s_addr)) {
 } else sock.sin_family = AF_INET;
 if ((!(sock.sin_port=htons(atoi(argv[2]))))
 || ((sockfd=socket(sock.sin_family,SOCK_DGRAM,IPPROTO_UDP))<0)
-|| (setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,&optval,sizeof(optval)))
+|| (setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,(int[]){1},sizeof(int)))
 || (bind(sockfd,(struct sockaddr*)&sock,sizeof(sock))<0))
 exit(64);
 
@@ -142,16 +141,16 @@ taia_pack(taia1,taia0);
 gettimeofday(&now,utc);
 int jitter = now.tv_sec;
 int update = now.tv_sec - 16;
-int sessionexpiry = now.tv_sec - 512;
+int expiry = now.tv_sec - 512;
 
 while (1) {
 
 gettimeofday(&now,utc);
 
-if (now.tv_sec - sessionexpiry >= 512) {
+if (now.tv_sec-expiry>=512) {
  if (crypto_box_keypair(shorttermpk,shorttermsk)) zeroexit(255);
  if (crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)) zeroexit(255);
- sessionexpiry = now.tv_sec;
+ expiry = now.tv_sec;
  goto sendupdate;
 }
 
@@ -209,7 +208,7 @@ if (fds[0].revents) {
   jitter = now.tv_sec;
   bzero(remoteshorttermpk,32);
   memcpy(shorttermsharedk0,shorttermsharedk1,32);
-  if (crypto_box_open_afternm(buffer32,buffer32,16-16-32+n-16,nonce,shorttermsharedk1)<0) goto sendupdate;
+  if (crypto_box_open_afternm(buffer32,buffer16,16-16-32+n-16,nonce,shorttermsharedk1)<0) goto sendupdate;
   if (write(tunfd,buffer32+32,-16-32+n-16-16)<0) zeroexit(255);
   goto sendupdate;
  }
