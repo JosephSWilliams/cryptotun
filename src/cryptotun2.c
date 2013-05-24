@@ -155,7 +155,7 @@ if (now.tv_sec - sessionexpiry >= 512) {
  goto sendupdate;
 }
 
-if (now.tv_sec - update >= 16) {
+if (now.tv_sec-update>=16) {
 sendupdate:
  memcpy(buffer32+32,shorttermpk,32);
  taia_now(nonce);
@@ -181,27 +181,23 @@ if (fds[0].revents) {
  remoteaddr.sin_addr = recvaddr.sin_addr;
  remoteaddr.sin_port = recvaddr.sin_port;
 
- if (updatetaia == 32) {
+ if (updatetaia==32) {
   memcpy(taia0,taia1,16);
   taia_now(taia1);
   taia_pack(taia1,taia1);
   updatetaia = 0;
-  goto cachetaia;
  }
 
- else {
- cachetaia:
-  if (memcmp(taia0,taiacache,16)<0) memcpy(taia0,taiacache,16);
-  memcpy(taiacache,taiacache+16,2048-16);
-  memcpy(taiacache+2048-16,nonce,16);
-  ++updatetaia;
- }
+ if (memcmp(taia0,taiacache,16)<0) memcpy(taia0,taiacache,16);
+ memcpy(taiacache,taiacache+16,2048-16);
+ memcpy(taiacache+2048-16,nonce,16);
+ ++updatetaia;
 
  if (crypto_verify_32(remoteshorttermpk,buffer32+32)) {
   jitter = now.tv_sec;
   memcpy(remoteshorttermpk,buffer32+32,32);
   if (crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)<0) zeroexit(255);
- } else if ((jitter) && (now.tv_sec - jitter >= 64)) {
+ } else if ((jitter)&&(now.tv_sec-jitter>=64)) {
   memcpy(shorttermsharedk1,shorttermsharedk0,32);
   jitter = 0;
  }
