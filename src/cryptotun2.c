@@ -143,6 +143,7 @@ fds[1].fd = tunfd;
 taia_now(taia0);
 taia_pack(taia0,taia0);
 taia_pack(taia1,taia0);
+bzero(taiacache,sizeof(taiacache));
 
 gettimeofday(&now,utc);
 int jitter = now.tv_sec;
@@ -176,12 +177,12 @@ sendupdate:
 devwrite:
 if (fds[0].revents) {
  if ((n=recvfrom(sockfd,buffer16+16,1500,0,(struct sockaddr*)&recvaddr,&recvaddr_len))<0) zeroexit(255);
- if (n<16+32+16) goto devread;
+ if (n<16+32+16) { write(2,"0\n",2); goto devread; }
  memcpy(nonce,buffer16+16,16);
- if (memcmpr(nonce,taia0,16)<1) goto devread;
- for (i=2048-16;i>-16;i-=16) if (!crypto_verify_16(taiacache+i,nonce)) goto devread;
+ if (memcmpr(nonce,taia0,16)<1) { write(2,"1\n",2); goto devread; }
+ for (i=2048-16;i>-16;i-=16) if (!crypto_verify_16(taiacache+i,nonce)) { write(2,"2\n",2); goto devread; }
  memcpy(buffer16+16,buffer16+16+16,-16+n);
- if (crypto_box_open_afternm(buffer32,buffer16,16-16+n,nonce,longtermsharedk)<0) goto devread;
+ if (crypto_box_open_afternm(buffer32,buffer16,16-16+n,nonce,longtermsharedk)<0) { write(2,"3\n",2); goto devread; }
 
  remoteaddr.sin_addr = recvaddr.sin_addr;
  remoteaddr.sin_port = recvaddr.sin_port;
