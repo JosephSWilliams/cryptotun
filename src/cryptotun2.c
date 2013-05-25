@@ -30,6 +30,12 @@ cryptotun2:  remote pubkey\n\
 cryptotun2:  ifr_name\n\
 "
 
+int memcmpr(unsigned char *a, unsigned char *b, int len) {
+ int i;
+ for (i=0;i<len;++i) { if (a[i] > b[i]) return 1; if (a[i] < b[i]) return -1; }
+ return 0;
+}
+
 main(int argc, char **argv) {
 
 if (argc<8) exit(write(2,USAGE,strlen(USAGE))&255);
@@ -172,7 +178,7 @@ if (fds[0].revents) {
  if ((n=recvfrom(sockfd,buffer16+16,1500,0,(struct sockaddr*)&recvaddr,&recvaddr_len))<0) zeroexit(255);
  if (n<16+32+16) goto devread;
  memcpy(nonce,buffer16+16,16);
- if (memcmp(nonce,taia0,16)<=0) goto devread;
+ if (memcmpr(nonce,taia0,16)<1) goto devread;
  for (i=2048-16;i>-16;i-=16) if (!crypto_verify_16(taiacache+i,nonce)) goto devread;
  memcpy(buffer16+16,buffer16+16+16,-16+n);
  if (crypto_box_open_afternm(buffer32,buffer16,16-16+n,nonce,longtermsharedk)<0) goto devread;
@@ -187,7 +193,7 @@ if (fds[0].revents) {
   updatetaia = 0;
  }
 
- if (memcmp(taia0,taiacache,16)<0) memcpy(taia0,taiacache,16);
+ if (memcmpr(taia0,taiacache,16)<0) memcpy(taia0,taiacache,16);
  memcpy(taiacache,taiacache+16,2048-16);
  memcpy(taiacache+2048-16,nonce,16);
  ++updatetaia;
