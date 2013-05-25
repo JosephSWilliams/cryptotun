@@ -116,8 +116,7 @@ if ((!strlen(argv[7]))||(strlen(argv[7])>=16)) zeroexit(64);
 
 #else
  #include <net/if_tun.h>
- char ifr_name[5+16];
- bzero(&ifr_name,5+16);
+ char ifr_name[5+16]={0};
  memcpy(&ifr_name,"/dev/",5);
  memcpy(&ifr_name[5],argv[7],strlen(argv[7]));
  if ((tunfd=open(ifr_name,O_RDWR))<0) zeroexit(255);
