@@ -30,12 +30,6 @@ cryptotun2:  remote pubkey\n\
 cryptotun2:  ifr_name\n\
 "
 
-int memcmpr(unsigned char *a, unsigned char *b, int len) {
- int i;
- for (i=0;i<len;++i) { if (a[i] > b[i]) return 1; if (a[i] < b[i]) return -1; }
- return 0;
-}
-
 main(int argc, char **argv) {
 
 if (argc<8) exit(write(2,USAGE,strlen(USAGE))&255);
@@ -62,6 +56,10 @@ unsigned char remoteshorttermpk[32];
 unsigned char shorttermsharedk0[32];
 unsigned char shorttermsharedk1[32];
 
+/* unsigned char buffer[n] = {0} reliable ? */
+bzero(&nonce,24);
+bzero(&taiacache,2048);
+
 int i;
 int n;
 int tunfd;
@@ -69,13 +67,13 @@ int sockfd;
 int updatetaia = 0;
 
 void zeroexit(int signum) {
- bzero(buffer16,2048);
- bzero(buffer32,2048);
- bzero(longtermsk,32);
- bzero(shorttermsk,32);
- bzero(longtermsharedk,32);
- bzero(shorttermsharedk0,32);
- bzero(shorttermsharedk1,32);
+ bzero(&buffer16,2048);
+ bzero(&buffer32,2048);
+ bzero(&longtermsk,32);
+ bzero(&shorttermsk,32);
+ bzero(&longtermsharedk,32);
+ bzero(&shorttermsharedk0,32);
+ bzero(&shorttermsharedk1,32);
  exit(signum);
 }
 
@@ -122,7 +120,8 @@ if ((!strlen(argv[7]))||(strlen(argv[7])>=16)) zeroexit(64);
 
 #else
  #include <net/if_tun.h>
- char ifr_name[5+16]={0};
+ char ifr_name[5+16];
+ bzero(&ifr_name,5+16);
  memcpy(&ifr_name,"/dev/",5);
  memcpy(&ifr_name[5],argv[7],strlen(argv[7]));
  if ((tunfd=open(ifr_name,O_RDWR))<0) zeroexit(255);
@@ -143,7 +142,6 @@ fds[1].fd = tunfd;
 taia_now(taia0);
 taia_pack(taia0,taia0);
 taia_pack(taia1,taia0);
-bzero(taiacache,sizeof(taiacache));
 
 gettimeofday(&now,utc);
 int jitter = now.tv_sec;
@@ -177,12 +175,12 @@ sendupdate:
 devwrite:
 if (fds[0].revents) {
  if ((n=recvfrom(sockfd,buffer16+16,1500,0,(struct sockaddr*)&recvaddr,&recvaddr_len))<0) zeroexit(255);
- if (n<16+32+16) { write(2,"0\n",2); goto devread; }
+ if (n<16+32+16) goto devread;
  memcpy(nonce,buffer16+16,16);
- if (memcmpr(nonce,taia0,16)<1) { write(2,"1\n",2); goto devread; }
- for (i=2048-16;i>-16;i-=16) if (!crypto_verify_16(taiacache+i,nonce)) { write(2,"2\n",2); goto devread; }
+ if (memcmp(nonce,taia0,16)<1) goto devread;
+ for (i=2048-16;i>-16;i-=16) if (!crypto_verify_16(taiacache+i,nonce)) goto devread;
  memcpy(buffer16+16,buffer16+16+16,-16+n);
- if (crypto_box_open_afternm(buffer32,buffer16,16-16+n,nonce,longtermsharedk)<0) { write(2,"3\n",2); goto devread; }
+ if (crypto_box_open_afternm(buffer32,buffer16,16-16+n,nonce,longtermsharedk)<0) goto devread;
 
  remoteaddr.sin_addr = recvaddr.sin_addr;
  remoteaddr.sin_port = recvaddr.sin_port;
@@ -194,7 +192,7 @@ if (fds[0].revents) {
   updatetaia = 0;
  }
 
- if (memcmpr(taia0,taiacache,16)<0) memcpy(taia0,taiacache,16);
+ if (memcmp(taia0,taiacache,16)<0) memcpy(taia0,taiacache,16);
  memcpy(taiacache,taiacache+16,2048-16);
  memcpy(taiacache+2048-16,nonce,16);
  ++updatetaia;
@@ -213,7 +211,7 @@ if (fds[0].revents) {
 
  if (crypto_box_open_afternm(buffer32,buffer16,16-16-32+n-16,nonce,shorttermsharedk0)<0) {
   jitter = now.tv_sec;
-  bzero(remoteshorttermpk,32);
+  bzero(&remoteshorttermpk,32);
   memcpy(shorttermsharedk0,shorttermsharedk1,32);
   if (crypto_box_open_afternm(buffer32,buffer16,16-16-32+n-16,nonce,shorttermsharedk1)<0) goto sendupdate;
   if (write(tunfd,buffer32+32,-16-32+n-16-16)<0) zeroexit(255);
