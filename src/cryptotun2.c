@@ -56,10 +56,6 @@ unsigned char remoteshorttermpk[32];
 unsigned char shorttermsharedk0[32];
 unsigned char shorttermsharedk1[32];
 
-/* unsigned char buffer[n] = {0} reliable ? */
-bzero(&nonce,24);
-bzero(&taiacache,2048);
-
 int i;
 int n;
 int tunfd;
@@ -140,8 +136,8 @@ fds[0].fd = sockfd;
 fds[1].fd = tunfd;
 
 taia_now(taia0);
-taia_pack(taia0,taia0);
 taia_pack(taia1,taia0);
+taia_pack(taia0,taia0);
 
 gettimeofday(&now,utc);
 int jitter = now.tv_sec;
