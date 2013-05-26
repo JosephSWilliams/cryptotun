@@ -78,10 +78,10 @@ signal(SIGHUP,zeroexit);
 signal(SIGTERM,zeroexit);
 
 bzero(&sock,sizeof(sock));
-if (!inet_pton(AF_INET,argv[1],&sock.sin_addr.s_addr)) {
- if (!inet_pton(AF_INET6,argv[1],&sock.sin_addr.s_addr)) exit(64);
+if (!inet_pton(AF_INET,argv[1],&sock.sin_addr.s_addr))/* {
+ if (!inet_pton(AF_INET6,argv[1],&sock.sin_addr.s_addr))*/ exit(64);/*
  else sock.sin_family = AF_INET6;
-} else sock.sin_family = AF_INET;
+} else*/ sock.sin_family = AF_INET;
 if ((!(sock.sin_port=htons(atoi(argv[2]))))
 || ((sockfd=socket(sock.sin_family,SOCK_DGRAM,IPPROTO_UDP))<0)
 || (setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,(int[]){1},sizeof(int)))
@@ -89,10 +89,10 @@ if ((!(sock.sin_port=htons(atoi(argv[2]))))
 exit(64);
 
 bzero(&remoteaddr,sizeof(remoteaddr));
-if (!inet_pton(AF_INET,argv[3],&remoteaddr.sin_addr.s_addr)) {
- if (!inet_pton(AF_INET6,argv[3],&remoteaddr.sin_addr.s_addr)) exit(64);
- else remoteaddr.sin_family = AF_INET6;
-} else remoteaddr.sin_family = AF_INET;
+if (!inet_pton(AF_INET,argv[3],&remoteaddr.sin_addr.s_addr))/* {
+ if (!inet_pton(AF_INET6,argv[3],&remoteaddr.sin_addr.s_addr))*/ exit(64);
+/* else remoteaddr.sin_family = AF_INET6;
+} else*/ remoteaddr.sin_family = AF_INET;
 if (!(remoteaddr.sin_port=htons(atoi(argv[4])))) exit(64);
 
 if (((n=open(argv[5],0))<0)||(read(n,longtermsk,32)!=32)) zeroexit(64);
