@@ -35,10 +35,10 @@ main(int argc, char **argv) {
 if (argc<8) exit(write(2,USAGE,strlen(USAGE))&255);
 
 struct timeval now;
-struct sockaddr_in sock4;
-struct sockaddr_in6 sock6;
-struct sockaddr_storage sock;
-struct sockaddr_storage recvaddr;
+struct sockaddr_in sock4={0};
+struct sockaddr_in6 sock6={0};
+struct sockaddr_storage sock={0};
+struct sockaddr_storage recvaddr={0};
 socklen_t recvaddr_len = sizeof(recvaddr);
 struct timezone *utc = (struct timezone*)0;
 
@@ -78,10 +78,6 @@ signal(SIGINT,zeroexit);
 signal(SIGHUP,zeroexit);
 signal(SIGTERM,zeroexit);
 
-bzero(&sock,sizeof(sock));
-bzero(&sock,sizeof(sock4));
-bzero(&sock,sizeof(sock6));
-
 if (!inet_pton(AF_INET,argv[1],&sock4.sin_addr)) {
  if ((sockfd=socket(AF_INET6,SOCK_DGRAM,IPPROTO_UDP))<0) exit(64);
  if (!inet_pton(AF_INET6,argv[1],&sock6.sin6_addr)) exit(64);
@@ -98,22 +94,17 @@ if (!inet_pton(AF_INET,argv[1],&sock4.sin_addr)) {
 if (setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,(int[]){1},sizeof(int))) exit(64);
 if (bind(sockfd,(struct sockaddr*)&sock,sizeof(sock))<0) exit(64);
 
-bzero(&sock,sizeof(sock));
-bzero(&sock,sizeof(sock4));
-bzero(&sock,sizeof(sock6));
-
 if (!inet_pton(AF_INET,argv[3],&sock4.sin_addr)) {
  if (!inet_pton(AF_INET6,argv[3],&sock6.sin6_addr)) exit(64);
  if (!(sock6.sin6_port=htons(atoi(argv[4])))) exit(64);
  sock6.sin6_family = AF_INET6;
- memcpy(&sock,&sock6,sizeof(sock6));
+ memcpy(&recvaddr,&sock6,sizeof(sock6));
 } else {
  if (!(sock4.sin_port=htons(atoi(argv[4])))) exit(64);
  sock4.sin_family = AF_INET;
- memcpy(&sock,&sock4,sizeof(sock4));
+ memcpy(&recvaddr,&sock4,sizeof(sock4));
 }
-
-memcpy(&recvaddr,&sock,sizeof(recvaddr));
+memcpy(&sock,&recvaddr,sizeof(sock));
 
 if (((n=open(argv[5],0))<0)||(read(n,longtermsk,32)!=32)) zeroexit(64);
 close(n);
