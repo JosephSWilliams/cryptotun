@@ -35,11 +35,12 @@ main(int argc, char **argv) {
 if (argc<8) exit(write(2,USAGE,strlen(USAGE))&255);
 
 struct timeval now;
-struct sockaddr_in sock;
-struct sockaddr_in recvaddr;
-struct sockaddr_in remoteaddr;
+struct sockaddr_in sock4;
+struct sockaddr_in6 sock6;
+struct sockaddr_storage sock;
+struct sockaddr_storage recvaddr;
+socklen_t recvaddr_len = sizeof(recvaddr);
 struct timezone *utc = (struct timezone*)0;
-socklen_t recvaddr_len = sizeof(struct sockaddr_in);
 
 unsigned char taia0[16];
 unsigned char taia1[16];
@@ -78,27 +79,47 @@ signal(SIGHUP,zeroexit);
 signal(SIGTERM,zeroexit);
 
 bzero(&sock,sizeof(sock));
-if (!inet_pton(AF_INET,argv[1],&sock.sin_addr.s_addr))/* {
- if (!inet_pton(AF_INET6,argv[1],&sock.sin_addr.s_addr))*/ exit(64);/*
- else sock.sin_family = AF_INET6;
-} else*/ sock.sin_family = AF_INET;
-if ((!(sock.sin_port=htons(atoi(argv[2]))))
-|| ((sockfd=socket(sock.sin_family,SOCK_DGRAM,IPPROTO_UDP))<0)
-|| (setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,(int[]){1},sizeof(int)))
-|| (bind(sockfd,(struct sockaddr*)&sock,sizeof(sock))<0))
-exit(64);
+bzero(&sock,sizeof(sock4));
+bzero(&sock,sizeof(sock6));
 
-bzero(&remoteaddr,sizeof(remoteaddr));
-if (!inet_pton(AF_INET,argv[3],&remoteaddr.sin_addr.s_addr))/* {
- if (!inet_pton(AF_INET6,argv[3],&remoteaddr.sin_addr.s_addr))*/ exit(64);
-/* else remoteaddr.sin_family = AF_INET6;
-} else*/ remoteaddr.sin_family = AF_INET;
-if (!(remoteaddr.sin_port=htons(atoi(argv[4])))) exit(64);
+if (!inet_pton(AF_INET,argv[1],&sock4.sin_addr)) {
+ if ((sockfd=socket(AF_INET6,SOCK_DGRAM,IPPROTO_UDP))<0) exit(64);
+ if (!inet_pton(AF_INET6,argv[1],&sock6.sin6_addr)) exit(64);
+ if (!(sock6.sin6_port=htons(atoi(argv[2])))) exit(64);
+ sock6.sin6_family = AF_INET6;
+ memcpy(&sock,&sock6,sizeof(sock6));
+} else {
+ if ((sockfd=socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP))<0) exit(64);
+ if (!(sock4.sin_port=htons(atoi(argv[2])))) exit(64);
+ sock4.sin_family = AF_INET;
+ memcpy(&sock,&sock4,sizeof(sock4));
+}
+
+if (setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,(int[]){1},sizeof(int))) exit(64);
+if (bind(sockfd,(struct sockaddr*)&sock,sizeof(sock))<0) exit(64);
+
+bzero(&sock,sizeof(sock));
+bzero(&sock,sizeof(sock4));
+bzero(&sock,sizeof(sock6));
+
+if (!inet_pton(AF_INET,argv[3],&sock4.sin_addr)) {
+ if (!inet_pton(AF_INET6,argv[3],&sock6.sin6_addr)) exit(64);
+ if (!(sock6.sin6_port=htons(atoi(argv[4])))) exit(64);
+ sock6.sin6_family = AF_INET6;
+ memcpy(&sock,&sock6,sizeof(sock6));
+} else {
+ if (!(sock4.sin_port=htons(atoi(argv[4])))) exit(64);
+ sock4.sin_family = AF_INET;
+ memcpy(&sock,&sock4,sizeof(sock4));
+}
+
+memcpy(&recvaddr,&sock,sizeof(recvaddr));
 
 if (((n=open(argv[5],0))<0)||(read(n,longtermsk,32)!=32)) zeroexit(64);
 close(n);
 if ((strlen(argv[6])!=64)||(base16_decode(remotelongtermpk,argv[6],64)!=32)) zeroexit(64);
 if (crypto_box_beforenm(longtermsharedk,remotelongtermpk,longtermsk)) zeroexit(255);
+
 if ((!strlen(argv[7]))||(strlen(argv[7])>=16)) zeroexit(64);
 
 #ifdef linux
@@ -162,7 +183,7 @@ sendupdate:
  if (crypto_box_afternm(buffer16,buffer32,32+32,nonce,longtermsharedk)) zeroexit(255);
  memcpy(buffer32+32,nonce,16);
  memcpy(buffer32+32+16,buffer16+16,32+16);
- sendto(sockfd,buffer32+32,16+32+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr));
+ sendto(sockfd,buffer32+32,16+32+16,0,(struct sockaddr*)&sock,sizeof(sock));
  update = now.tv_sec;
  goto devread;
 }
@@ -177,8 +198,7 @@ if (fds[0].revents) {
  memcpy(buffer16+16,buffer16+16+16,-16+n);
  if (crypto_box_open_afternm(buffer32,buffer16,16-16+n,nonce,longtermsharedk)<0) goto devread;
 
- remoteaddr.sin_addr = recvaddr.sin_addr;
- remoteaddr.sin_port = recvaddr.sin_port;
+ memcpy(&sock,&recvaddr,sizeof(recvaddr));
 
  if (updatetaia==32) {
   memcpy(taia0,taia1,16);
@@ -228,7 +248,7 @@ if (fds[1].revents) {
  if (crypto_box_afternm(buffer16,buffer32,32+32+n+16,nonce,longtermsharedk)<0) zeroexit(255);
  memcpy(buffer32+32,nonce,16);
  memcpy(buffer32+32+16,buffer16+16,32+n+16+16);
- if (sendto(sockfd,buffer32+32,16+32+n+16+16,0,(struct sockaddr*)&remoteaddr,sizeof(remoteaddr))==16+32+n+16+16) update = now.tv_sec;
+ if (sendto(sockfd,buffer32+32,16+32+n+16+16,0,(struct sockaddr*)&sock,sizeof(sock))==16+32+n+16+16) update = now.tv_sec;
 }
 
 poll(fds,2,16384);
