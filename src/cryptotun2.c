@@ -14,10 +14,9 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <net/if.h>
+#include "base16.h"
 #include <taia.h>
 #include <poll.h>
-
-#include "base16.h"
 
 #define USAGE "\
 cryptotun2: usage:\n\
