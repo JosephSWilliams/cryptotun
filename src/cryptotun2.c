@@ -39,7 +39,7 @@ struct sockaddr_in sock4={0};
 struct sockaddr_in6 sock6={0};
 struct sockaddr_storage sock={0};
 struct sockaddr_storage recvaddr={0};
-socklen_t recvaddr_len = sizeof(recvaddr);
+socklen_t sockaddr_len = sizeof(sock);
 struct timezone *utc = (struct timezone*)0;
 
 unsigned char taia0[16];
@@ -104,7 +104,7 @@ if (!inet_pton(AF_INET,argv[3],&sock4.sin_addr)) {
  sock4.sin_family = AF_INET;
  memcpy(&recvaddr,&sock4,sizeof(sock4));
 }
-memcpy(&sock,&recvaddr,sizeof(sock));
+memcpy(&sock,&recvaddr,sockaddr_len);
 
 if (((n=open(argv[5],0))<0)||(read(n,longtermsk,32)!=32)) zeroexit(64);
 close(n);
@@ -174,14 +174,14 @@ sendupdate:
  if (crypto_box_afternm(buffer16,buffer32,32+32,nonce,longtermsharedk)) zeroexit(255);
  memcpy(buffer32+32,nonce,16);
  memcpy(buffer32+32+16,buffer16+16,32+16);
- sendto(sockfd,buffer32+32,16+32+16,0,(struct sockaddr*)&sock,sizeof(sock));
+ sendto(sockfd,buffer32+32,16+32+16,0,(struct sockaddr*)&sock,sockaddr_len);
  update = now.tv_sec;
  goto devread;
 }
 
 devwrite:
 if (fds[0].revents) {
- if ((n=recvfrom(sockfd,buffer16+16,1500,0,(struct sockaddr*)&recvaddr,&recvaddr_len))<0) zeroexit(255);
+ if ((n=recvfrom(sockfd,buffer16+16,1500,0,(struct sockaddr*)&recvaddr,&sockaddr_len))<0) zeroexit(255);
  if (n<16+32+16) goto devread;
  memcpy(nonce,buffer16+16,16);
  if (memcmp(nonce,taia0,16)<1) goto devread;
@@ -189,7 +189,7 @@ if (fds[0].revents) {
  memcpy(buffer16+16,buffer16+16+16,-16+n);
  if (crypto_box_open_afternm(buffer32,buffer16,16-16+n,nonce,longtermsharedk)<0) goto devread;
 
- memcpy(&sock,&recvaddr,sizeof(recvaddr));
+ memcpy(&sock,&recvaddr,sockaddr_len);
 
  if (updatetaia==32) {
   memcpy(taia0,taia1,16);
@@ -239,7 +239,7 @@ if (fds[1].revents) {
  if (crypto_box_afternm(buffer16,buffer32,32+32+n+16,nonce,longtermsharedk)<0) zeroexit(255);
  memcpy(buffer32+32,nonce,16);
  memcpy(buffer32+32+16,buffer16+16,32+n+16+16);
- if (sendto(sockfd,buffer32+32,16+32+n+16+16,0,(struct sockaddr*)&sock,sizeof(sock))==16+32+n+16+16) update = now.tv_sec;
+ if (sendto(sockfd,buffer32+32,16+32+n+16+16,0,(struct sockaddr*)&sock,sockaddr_len)==16+32+n+16+16) update = now.tv_sec;
 }
 
 poll(fds,2,16384);
