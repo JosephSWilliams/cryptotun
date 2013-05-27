@@ -104,10 +104,9 @@ if (!inet_pton(AF_INET,argv[3],&sock4.sin_addr)) {
 }
 memcpy(&sock,&recvaddr,sockaddr_len);
 
-if (((n=open(argv[5],0))<0)||(read(n,longtermsk,32)!=32)) zeroexit(64);
+if (((n=open(argv[5],0))<0)||(read(n,longtermsk,32)!=32)||(close(n)<0)) zeroexit(64);
 if ((strlen(argv[6])!=64)||(base16_decode(remotelongtermpk,argv[6],64)!=32)) zeroexit(64);
 if (crypto_box_beforenm(longtermsharedk,remotelongtermpk,longtermsk)) zeroexit(255);
-close(n);
 
 if ((!strlen(argv[7]))||(strlen(argv[7])>=16)) zeroexit(64);
 #ifdef linux
