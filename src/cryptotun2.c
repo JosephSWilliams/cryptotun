@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <net/if.h>
 #include "base16.h"
+#include <errno.h>
 #include <taia.h>
 #include <poll.h>
 
@@ -77,60 +78,60 @@ signal(SIGHUP,zeroexit);
 signal(SIGTERM,zeroexit);
 
 if (!inet_pton(AF_INET,argv[1],&sock4.sin_addr)) {
- if ((sockfd=socket(AF_INET6,SOCK_DGRAM,IPPROTO_UDP))<0) exit(64);
- if (!inet_pton(AF_INET6,argv[1],&sock6.sin6_addr)) exit(64);
- if (!(sock6.sin6_port=htons(atoi(argv[2])))) exit(64);
+ if ((sockfd=socket(AF_INET6,SOCK_DGRAM,IPPROTO_UDP))<0) exit(128+errno&255);
+ if (!inet_pton(AF_INET6,argv[1],&sock6.sin6_addr)) exit(128+errno&255);
+ if (!(sock6.sin6_port=htons(atoi(argv[2])))) exit(128+errno&255);
  sock6.sin6_family=AF_INET6;
  memcpy(&sock,&sock6,sizeof(sock6));
 } else {
- if ((sockfd=socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP))<0) exit(64);
- if (!(sock4.sin_port=htons(atoi(argv[2])))) exit(64);
+ if ((sockfd=socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP))<0) exit(128+errno&255);
+ if (!(sock4.sin_port=htons(atoi(argv[2])))) exit(128+errno&255);
  sock4.sin_family=AF_INET;
  memcpy(&sock,&sock4,sizeof(sock4));
 }
-if (setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,(int[]){1},sizeof(int))) exit(64);
-if (bind(sockfd,(struct sockaddr*)&sock,sizeof(sock))<0) exit(64);
+if (setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,(int[]){1},sizeof(int))) exit(128+errno&255);
+if (bind(sockfd,(struct sockaddr*)&sock,sizeof(sock))<0) exit(128+errno&255);
 
 if (!inet_pton(AF_INET,argv[3],&sock4.sin_addr)) {
- if (!inet_pton(AF_INET6,argv[3],&sock6.sin6_addr)) exit(64);
- if (!(sock6.sin6_port=htons(atoi(argv[4])))) exit(64);
+ if (!inet_pton(AF_INET6,argv[3],&sock6.sin6_addr)) exit(128+errno&255);
+ if (!(sock6.sin6_port=htons(atoi(argv[4])))) exit(128+errno&255);
  sock6.sin6_family=AF_INET6;
  memcpy(&recvaddr,&sock6,sizeof(sock6));
 } else {
- if (!(sock4.sin_port=htons(atoi(argv[4])))) exit(64);
+ if (!(sock4.sin_port=htons(atoi(argv[4])))) exit(128+errno&255);
  sock4.sin_family=AF_INET;
  memcpy(&recvaddr,&sock4,sizeof(sock4));
 }
 memcpy(&sock,&recvaddr,sockaddr_len);
 
-if (((n=open(argv[5],0))<0)||(read(n,longtermsk,32)!=32)||(close(n)<0)) zeroexit(64);
-if ((strlen(argv[6])!=64)||(base16_decode(remotelongtermpk,argv[6],64)!=32)) zeroexit(64);
-if (crypto_box_beforenm(longtermsharedk,remotelongtermpk,longtermsk)) zeroexit(255);
+if (((n=open(argv[5],0))<0)||(read(n,longtermsk,32)!=32)||(close(n)<0)) zeroexit(128+errno&255);
+if ((strlen(argv[6])!=64)||(base16_decode(remotelongtermpk,argv[6],64)!=32)) zeroexit(128+errno&255);
+if (crypto_box_beforenm(longtermsharedk,remotelongtermpk,longtermsk)) zeroexit(128+errno&255);
 
-if ((!strlen(argv[7]))||(strlen(argv[7])>=16)) zeroexit(64);
+if ((!strlen(argv[7]))||(strlen(argv[7])>=16)) zeroexit(128+errno&255);
 #ifdef linux
  #include <linux/if_tun.h>
  #include <linux/if_ether.h>
  tunfd=open("/dev/net/tun",O_RDWR);
  if (tunfd<0) tunfd = open("/dev/tun",O_RDWR); /* #ifdef android ? */
- if (tunfd<0) zeroexit(255);
+ if (tunfd<0) zeroexit(128+errno&255);
  struct ifreq ifr;
  bzero(&ifr,sizeof(ifr));
  strcpy(ifr.ifr_name,argv[7]);
  ifr.ifr_flags=(!getenv("IFF_TAP")) ? IFF_TUN : IFF_TAP;
  ifr.ifr_flags|=(!getenv("USE_PI")) ? IFF_NO_PI : 0;
- if (ioctl(tunfd,TUNSETIFF,(void*)&ifr)) zeroexit(255);
+ if (ioctl(tunfd,TUNSETIFF,(void*)&ifr)) zeroexit(128+errno&255);
 #else
  #include <net/if_tun.h>
  char ifr_name[5+16]={0};
  memcpy(&ifr_name,"/dev/",5);
  memcpy(&ifr_name[5],argv[7],strlen(argv[7]));
- if ((tunfd=open(ifr_name,O_RDWR))<0) zeroexit(255);
+ if ((tunfd=open(ifr_name,O_RDWR))<0) zeroexit(128+errno&255);
  int ifr_flag=IFF_POINTOPOINT|IFF_MULTICAST;
- if (ioctl(tunfd,TUNSIFMODE,&ifr_flag)) zeroexit(255);
+ if (ioctl(tunfd,TUNSIFMODE,&ifr_flag)) zeroexit(128+errno&255);
  ifr_flag=(!getenv("USE_PI")) ? 0 : 1;
- if (ioctl(tunfd,TUNSLMODE,&ifr_flag)) zeroexit(255);
- if (ioctl(tunfd,TUNSIFHEAD,&ifr_flag)) zeroexit(255);
+ if (ioctl(tunfd,TUNSLMODE,&ifr_flag)) zeroexit(128+errno&255);
+ if (ioctl(tunfd,TUNSIFHEAD,&ifr_flag)) zeroexit(128+errno&255);
 #endif
 
 struct pollfd fds[2];
@@ -153,8 +154,8 @@ while (1) {
 gettimeofday(&now,utc);
 
 if (now.tv_sec-expiry>=512) {
- if (crypto_box_keypair(shorttermpk,shorttermsk)) zeroexit(255);
- if (crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)) zeroexit(255);
+ if (crypto_box_keypair(shorttermpk,shorttermsk)) zeroexit(128+errno&255);
+ if (crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)) zeroexit(128+errno&255);
  expiry=now.tv_sec;
  goto sendupdate;
 }
@@ -164,7 +165,7 @@ sendupdate:
  memcpy(buffer32+32,shorttermpk,32);
  taia_now(nonce);
  taia_pack(nonce,nonce);
- if (crypto_box_afternm(buffer16,buffer32,32+32,nonce,longtermsharedk)) zeroexit(255);
+ if (crypto_box_afternm(buffer16,buffer32,32+32,nonce,longtermsharedk)) zeroexit(128+errno&255);
  memcpy(buffer32+32,nonce,16);
  memcpy(buffer32+32+16,buffer16+16,32+16);
  sendto(sockfd,buffer32+32,16+32+16,0,(struct sockaddr*)&sock,sockaddr_len);
@@ -174,7 +175,7 @@ sendupdate:
 
 devwrite:
 if (fds[0].revents) {
- if ((n=recvfrom(sockfd,buffer16+16,1500,0,(struct sockaddr*)&recvaddr,&sockaddr_len))<0) zeroexit(255);
+ if ((n=recvfrom(sockfd,buffer16+16,1500,0,(struct sockaddr*)&recvaddr,&sockaddr_len))<0) zeroexit(128+errno&255);
  if (n<16+32+16) goto devread;
 
  memcpy(nonce,buffer16+16,16);
@@ -199,7 +200,7 @@ if (fds[0].revents) {
  if (crypto_verify_32(remoteshorttermpk,buffer32+32)) {
   jitter=now.tv_sec;
   memcpy(remoteshorttermpk,buffer32+32,32);
-  if (crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)<0) zeroexit(255);
+  if (crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)<0) zeroexit(128+errno&255);
  } else if ((jitter)&&(now.tv_sec-jitter>=64)) {
   memcpy(shorttermsharedk1,shorttermsharedk0,32);
   jitter=0;
@@ -212,23 +213,23 @@ if (fds[0].revents) {
   bzero(&remoteshorttermpk,32);
   memcpy(shorttermsharedk0,shorttermsharedk1,32);
   if (crypto_box_open_afternm(buffer32,buffer16,16-16-32+n-16,nonce,shorttermsharedk1)<0) goto sendupdate;
-  if (write(tunfd,buffer32+32,-16-32+n-16-16)<0) zeroexit(255);
+  if (write(tunfd,buffer32+32,-16-32+n-16-16)<0) zeroexit(128+errno&255);
   goto sendupdate;
  }
 
- if (write(tunfd,buffer32+32,-16-32+n-16-16)<0) zeroexit(255);
+ if (write(tunfd,buffer32+32,-16-32+n-16-16)<0) zeroexit(128+errno&255);
  update=now.tv_sec;
 }
 
 devread:
 if (fds[1].revents) {
- if ((n=read(tunfd,buffer32+32,1500))<0) zeroexit(255);
+ if ((n=read(tunfd,buffer32+32,1500))<0) zeroexit(128+errno&255);
  taia_now(nonce);
  taia_pack(nonce,nonce);
- if (crypto_box_afternm(buffer16,buffer32,32+n,nonce,shorttermsharedk0)<0) zeroexit(255);
+ if (crypto_box_afternm(buffer16,buffer32,32+n,nonce,shorttermsharedk0)<0) zeroexit(128+errno&255);
  memcpy(buffer32+32,shorttermpk,32);
  memcpy(buffer32+32+32,buffer16+16,n+16);
- if (crypto_box_afternm(buffer16,buffer32,32+32+n+16,nonce,longtermsharedk)<0) zeroexit(255);
+ if (crypto_box_afternm(buffer16,buffer32,32+32+n+16,nonce,longtermsharedk)<0) zeroexit(128+errno&255);
  memcpy(buffer32+32,nonce,16);
  memcpy(buffer32+32+16,buffer16+16,32+n+16+16);
  if (sendto(sockfd,buffer32+32,16+32+n+16+16,0,(struct sockaddr*)&sock,sockaddr_len)==16+32+n+16+16) update=now.tv_sec;
