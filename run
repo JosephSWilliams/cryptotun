@@ -29,5 +29,5 @@ export USE_PI=`cat env/USE_PI 2>/dev/null` || export USE_PI=''
 ) &
 
 ignchld=''
-test -x ignchld && ignchild='./ignchld'
+test -x ignchld && ignchld='./ignchld'
 exec $ignchld ./cryptotun$PROTOCOL $LOCALIP $LOCALPORT $REMOTEIP $REMOTEPORT env/SECKEY $PUBKEY $INTERFACE
