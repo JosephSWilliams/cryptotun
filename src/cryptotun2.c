@@ -19,6 +19,8 @@
 #include <taia.h>
 #include <poll.h>
 
+int envnum(char *a) { return atoi(a); }
+
 #define USAGE "\
 cryptotun2: usage:\n\
 cryptotun2:  local addr\n\
@@ -120,8 +122,8 @@ if ((!strlen(argv[7]))||(strlen(argv[7])>=16)) zeroexit(128+errno&255);
  struct ifreq ifr;
  bzero(&ifr,sizeof(ifr));
  strcpy(ifr.ifr_name,argv[7]);
- ifr.ifr_flags=(!getenv("IFF_TAP")) ? IFF_TUN : IFF_TAP;
- ifr.ifr_flags|=(!getenv("USE_PI")) ? IFF_NO_PI : 0;
+ ifr.ifr_flags=(!envnum("IFF_TAP")) ? IFF_TUN : IFF_TAP;
+ ifr.ifr_flags|=(!envnum("USE_PI")) ? IFF_NO_PI : 0;
  if (ioctl(tunfd,TUNSETIFF,(void*)&ifr)) zeroexit(128+errno&255);
 #else
  #include <net/if_tun.h>
@@ -131,7 +133,7 @@ if ((!strlen(argv[7]))||(strlen(argv[7])>=16)) zeroexit(128+errno&255);
  if ((tunfd=open(ifr_name,O_RDWR))<0) zeroexit(128+errno&255);
  int ifr_flag=IFF_POINTOPOINT|IFF_MULTICAST;
  if (ioctl(tunfd,TUNSIFMODE,&ifr_flag)) zeroexit(128+errno&255);
- ifr_flag=(!getenv("USE_PI")) ? 0 : 1;
+ ifr_flag=(!envnum("USE_PI")) ? 0 : 1;
  if (ioctl(tunfd,TUNSLMODE,&ifr_flag)) zeroexit(128+errno&255);
  if (ioctl(tunfd,TUNSIFHEAD,&ifr_flag)) zeroexit(128+errno&255);
 #endif
