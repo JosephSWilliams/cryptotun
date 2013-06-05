@@ -7,7 +7,7 @@
 [ `uname -s` == OpenBSD ] && CFLAGS=-DPOSIX_SOURCE
 [ `uname -s` == FreeBSD ] && CFLAGS=-DPOSIX_SOURCE
 
-gcc `cat conf-cc` $CFLAGS src/memcmp-test.c -o memcmp-test
+gcc `cat conf-cc` $CFLAGS src/memcmp-test.c -o memcmp-test -l tai
 ./memcmp-test
 
 gcc `cat conf-cc` $CFLAGS src/ignchld.c -o ignchld
