@@ -190,11 +190,11 @@ if (fds[0].revents) {
 
  memcpy(buffer16+16,buffer16+16+16,-16+n);
  if (crypto_box_open_afternm(buffer32,buffer16,16-16+n,nonce,longtermsharedk)<0) goto devread;
- if (memcmp(&socka,&recvaddr,sockaddr_len)) {
-  if (memcmp(&sockb,&recvaddr,sockaddr_len)) memcpy(&socka,&recvaddr,sockaddr_len);
-  mobile=now.tv_sec;
+ if ((memcmp(&socka,&recvaddr,sockaddr_len))&&(memcmp(&sockb,&recvaddr,sockaddr_len))) {
+   memcpy(&socka,&recvaddr,sockaddr_len);
+   mobile=now.tv_sec;
  } else if ((mobile)&&(now.tv_sec-mobile>=64)) {
-  memcpy(&sockb,&recvaddr,sockaddr_len);
+  memcpy(&sockb,&socka,sockaddr_len);
   mobile=0;
  }
  if (updatetaia==32) {
