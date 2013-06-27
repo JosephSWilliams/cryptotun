@@ -159,7 +159,9 @@ while (1) {
 gettimeofday(&now,utc);
 
 if (now.tv_sec-expiry>=512) {
+sessionkeypair:
  if (crypto_box_keypair(shorttermpk,shorttermsk)) zeroexit(128+errno&255);
+ if (!crypto_verify_32(remoteshorttermpk,shorttermpk)) goto sessionkeypair;
  if (crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)) zeroexit(128+errno&255);
  expiry=now.tv_sec;
  goto sendupdate;
@@ -190,6 +192,7 @@ if (fds[0].revents) {
 
  memcpy(buffer16+16,buffer16+16+16,-16+n);
  if (crypto_box_open_afternm(buffer32,buffer16,16-16+n,nonce,longtermsharedk)<0) goto devread;
+ if (!crypto_verify_32(shorttermpk,buffer32+32)) goto devread;
  if ((memcmp(&socka,&recvaddr,sockaddr_len))&&(memcmp(&sockb,&recvaddr,sockaddr_len))) {
    memcpy(&socka,&recvaddr,sockaddr_len);
    mobile=now.tv_sec;

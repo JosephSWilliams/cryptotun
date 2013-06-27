@@ -214,8 +214,7 @@ main(int argc, char **argv)
 
     gettimeofday(&now,utc);
 
-    if (now.tv_sec - sessionexpiry >= 512)
-    {
+    if (now.tv_sec - sessionexpiry >= 512) { sessionkeypair:
 
       if (crypto_box_keypair(shorttermpk,shorttermsk)<0)
       {
@@ -223,6 +222,7 @@ main(int argc, char **argv)
         zeroexit(255);
       }
 
+      if (!crypto_verify_32(remoteshorttermpk,shorttermpk)) goto sessionkeypair;
       if (crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)<0)
       {
         fprintf(stderr,"cryptotun: fatal error: failed crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)\n");
@@ -284,6 +284,7 @@ main(int argc, char **argv)
       bzero(buffer0,32);
 
       if (crypto_box_open_afternm(buffer0,buffer1,16+-24+n,nonce,longtermsharedk)<0) goto devread;
+      if (!crypto_verify_32(shorttermpk,buffer0+32)) goto devread;
 
       remoteaddr.sin_addr = recvaddr.sin_addr;
       remoteaddr.sin_port = recvaddr.sin_port;

@@ -8,7 +8,7 @@
 [ `uname -s` == FreeBSD ] && CFLAGS=-DPOSIX_SOURCE
 
 gcc `cat conf-cc` $CFLAGS src/memcmp-test.c -o memcmp-test -l tai
-./memcmp-test
+./memcmp-test || exit 255
 
 gcc `cat conf-cc` $CFLAGS src/ignchld.c -o ignchld
 gcc `cat conf-cc` $CFLAGS src/pubkey.c -o pubkey -l nacl
