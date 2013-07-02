@@ -48,13 +48,14 @@ struct timezone *utc=(struct timezone*)0;
 
 unsigned char taia0[16];
 unsigned char taia1[16];
-unsigned char localnonce[24];
-unsigned char remotenonce[24];
 unsigned char longtermsk[32];
+unsigned char longtermpk[32];
 unsigned char shorttermpk[32];
 unsigned char shorttermsk[32];
 unsigned char buffer16[2048]={0};
 unsigned char buffer32[2048]={0};
+unsigned char localnonce[24]={0};
+unsigned char remotenonce[24]={0};
 unsigned char taiacache[2048]={0};
 unsigned char longtermsharedk[32];
 unsigned char remotelongtermpk[32];
@@ -114,6 +115,10 @@ if (((n=open(argv[5],0))<0)||(read(n,longtermsk,32)!=32)||(close(n)<0)) zeroexit
 if ((strlen(argv[6])!=64)||(base16_decode(remotelongtermpk,argv[6],64)!=32)) zeroexit(128+errno&255);
 if (crypto_box_beforenm(longtermsharedk,remotelongtermpk,longtermsk)) zeroexit(128+errno&255);
 
+crypto_scalarmult_curve25519_base(longtermpk,longtermsk);
+memcpy(localnonce+16,longtermpk,8);
+memcpy(remotenonce+16,remotelongtermpk,8);
+
 if ((!strlen(argv[7]))||(strlen(argv[7])>=16)) zeroexit(128+errno&255);
 #ifdef linux
  #include <linux/if_tun.h>
@@ -155,10 +160,6 @@ int mobile=0;
 int jitter=now.tv_sec;
 int update=now.tv_sec-16;
 int expiry=now.tv_sec-512;
-
-crypto_scalarmult_curve25519_base(shorttermpk,longtermsk);
-memcpy(remotenonce+16,remotelongtermpk,8);
-memcpy(localnonce+16,shorttermpk,8);
 
 while (1) {
 
