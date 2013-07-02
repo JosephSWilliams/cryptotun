@@ -1,3 +1,4 @@
+#include <nacl/crypto_scalarmult_curve25519.h>
 #include <nacl/crypto_verify_32.h>
 #include <nacl/crypto_verify_16.h>
 #include <nacl/crypto_box.h>
@@ -47,7 +48,8 @@ struct timezone *utc=(struct timezone*)0;
 
 unsigned char taia0[16];
 unsigned char taia1[16];
-unsigned char nonce[24]={0};
+unsigned char localnonce[24];
+unsigned char remotenonce[24];
 unsigned char longtermsk[32];
 unsigned char shorttermpk[32];
 unsigned char shorttermsk[32];
@@ -154,14 +156,16 @@ int jitter=now.tv_sec;
 int update=now.tv_sec-16;
 int expiry=now.tv_sec-512;
 
+crypto_scalarmult_curve25519_base(shorttermpk,longtermsk);
+memcpy(remotenonce+16,remotelongtermpk,8);
+memcpy(localnonce+16,shorttermpk,8);
+
 while (1) {
 
 gettimeofday(&now,utc);
 
 if (now.tv_sec-expiry>=512) {
-sessionkeypair:
  if (crypto_box_keypair(shorttermpk,shorttermsk)) zeroexit(128+errno&255);
- if (!crypto_verify_32(remoteshorttermpk,shorttermpk)) goto sessionkeypair;
  if (crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)) zeroexit(128+errno&255);
  expiry=now.tv_sec;
  goto sendupdate;
@@ -170,10 +174,10 @@ sessionkeypair:
 if (now.tv_sec-update>=16) {
 sendupdate:
  memcpy(buffer32+32,shorttermpk,32);
- taia_now(nonce);
- taia_pack(nonce,nonce);
- if (crypto_box_afternm(buffer16,buffer32,32+32,nonce,longtermsharedk)) zeroexit(128+errno&255);
- memcpy(buffer32+32,nonce,16);
+ taia_now(localnonce);
+ taia_pack(localnonce,localnonce);
+ if (crypto_box_afternm(buffer16,buffer32,32+32,localnonce,longtermsharedk)) zeroexit(128+errno&255);
+ memcpy(buffer32+32,localnonce,16);
  memcpy(buffer32+32+16,buffer16+16,32+16);
  sendto(sockfd,buffer32+32,16+32+16,0,(struct sockaddr*)&socka,sockaddr_len);
  if (mobile) sendto(sockfd,buffer32+32,16+32+16,0,(struct sockaddr*)&sockb,sockaddr_len);
@@ -186,13 +190,12 @@ if (fds[0].revents) {
  if ((n=recvfrom(sockfd,buffer16+16,16+32+1500+16+16,0,(struct sockaddr*)&recvaddr,&sockaddr_len))<0) zeroexit(128+errno&255);
  if (n<16+32+16) goto devread;
 
- memcpy(nonce,buffer16+16,16);
- if (memcmp(nonce,taia0,16)<1) goto devread;
- for (i=2048-16;i>-16;i-=16) if (!crypto_verify_16(taiacache+i,nonce)) goto devread;
+ memcpy(remotenonce,buffer16+16,16);
+ if (memcmp(remotenonce,taia0,16)<1) goto devread;
+ for (i=2048-16;i>-16;i-=16) if (!crypto_verify_16(taiacache+i,remotenonce)) goto devread;
 
  memcpy(buffer16+16,buffer16+16+16,-16+n);
- if (crypto_box_open_afternm(buffer32,buffer16,16-16+n,nonce,longtermsharedk)<0) goto devread;
- if (!crypto_verify_32(shorttermpk,buffer32+32)) goto devread;
+ if (crypto_box_open_afternm(buffer32,buffer16,16-16+n,remotenonce,longtermsharedk)<0) goto devread;
  if ((memcmp(&socka,&recvaddr,sockaddr_len))&&(memcmp(&sockb,&recvaddr,sockaddr_len))) {
    memcpy(&socka,&recvaddr,sockaddr_len);
    mobile=now.tv_sec;
@@ -209,7 +212,7 @@ if (fds[0].revents) {
 
  if (memcmp(taia0,taiacache,16)<0) memcpy(taia0,taiacache,16);
  memcpy(taiacache,taiacache+16,2048-16);
- memcpy(taiacache+2048-16,nonce,16);
+ memcpy(taiacache+2048-16,remotenonce,16);
  ++updatetaia;
 
  if (crypto_verify_32(remoteshorttermpk,buffer32+32)) {
@@ -223,11 +226,11 @@ if (fds[0].revents) {
 
  if (n<16+32+16+16) goto devread;
  memcpy(buffer16+16,buffer32+32+32,-16-32+n-16);
- if (crypto_box_open_afternm(buffer32,buffer16,16-16-32+n-16,nonce,shorttermsharedk0)<0) {
+ if (crypto_box_open_afternm(buffer32,buffer16,16-16-32+n-16,remotenonce,shorttermsharedk0)<0) {
   jitter=now.tv_sec;
   bzero(&remoteshorttermpk,32);
   memcpy(shorttermsharedk0,shorttermsharedk1,32);
-  if (crypto_box_open_afternm(buffer32,buffer16,16-16-32+n-16,nonce,shorttermsharedk1)<0) goto sendupdate;
+  if (crypto_box_open_afternm(buffer32,buffer16,16-16-32+n-16,remotenonce,shorttermsharedk1)<0) goto sendupdate;
   if (write(tunfd,buffer32+32,-16-32+n-16-16)<0) zeroexit(128+errno&255);
   goto sendupdate;
  }
@@ -239,13 +242,13 @@ if (fds[0].revents) {
 devread:
 if (fds[1].revents) {
  if ((n=read(tunfd,buffer32+32,1500))<0) zeroexit(128+errno&255);
- taia_now(nonce);
- taia_pack(nonce,nonce);
- if (crypto_box_afternm(buffer16,buffer32,32+n,nonce,shorttermsharedk0)<0) zeroexit(128+errno&255);
+ taia_now(localnonce);
+ taia_pack(localnonce,localnonce);
+ if (crypto_box_afternm(buffer16,buffer32,32+n,localnonce,shorttermsharedk0)<0) zeroexit(128+errno&255);
  memcpy(buffer32+32,shorttermpk,32);
  memcpy(buffer32+32+32,buffer16+16,n+16);
- if (crypto_box_afternm(buffer16,buffer32,32+32+n+16,nonce,longtermsharedk)<0) zeroexit(128+errno&255);
- memcpy(buffer32+32,nonce,16);
+ if (crypto_box_afternm(buffer16,buffer32,32+32+n+16,localnonce,longtermsharedk)<0) zeroexit(128+errno&255);
+ memcpy(buffer32+32,localnonce,16);
  memcpy(buffer32+32+16,buffer16+16,32+n+16+16);
  if (sendto(sockfd,buffer32+32,16+32+n+16+16,0,(struct sockaddr*)&socka,sockaddr_len)==16+32+n+16+16) update=now.tv_sec;
  if ((mobile) && (sendto(sockfd,buffer32+32,16+32+n+16+16,0,(struct sockaddr*)&sockb,sockaddr_len)==16+32+n+16+16)) update=now.tv_sec;
