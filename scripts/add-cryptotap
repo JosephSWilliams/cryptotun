@@ -7,6 +7,7 @@ mkdir -p /services/cryptotap-$5/env/ || exit 255
 mkdir -p /services/cryptotap-$5/root/ || exit 255
 
 chmod 700 /services/cryptotap-$5/env/ || exit 255
+chmod 700 /services/cryptotap-$5/root/ || exit 255
 
 head -c 32 /dev/urandom > /services/cryptotap-$5/env/SECKEY || exit 255
 
