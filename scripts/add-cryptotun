@@ -3,7 +3,8 @@
   exit 64
 
 mkdir -p /services/cryptotun-$5/ || exit 255
-mkdir -p /services/cryptotun-$5/env || exit 255
+mkdir -p /services/cryptotun-$5/env/ || exit 255
+mkdir -p /services/cryptotun-$5/root/ || exit 255
 
 chmod 700 /services/cryptotun-$5/env/ || exit 255
 
@@ -21,6 +22,7 @@ printf $7 > /services/cryptotun-$5/env/GATEWAY || exit 255
 printf $8 > /services/cryptotun-$5/env/PTP || exit 255
 printf $9 > /services/cryptotun-$5/env/PUBKEY || exit 255
 printf 2  > /services/cryptotun-$5/env/PROTOCOL || exit 255
+printf /services/cryptotun-$5/root/ > env/ROOT || exit 255
 
 test -L /services/cryptotun-$5/ignchld || \
   ln -s "`pwd`"/ignchld /services/cryptotun-$5/ignchld || exit 255

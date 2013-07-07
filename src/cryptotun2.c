@@ -19,6 +19,7 @@
 #include <errno.h>
 #include <taia.h>
 #include <poll.h>
+#include <pwd.h>
 
 int envnum(char *a) { return atoi(a); }
 
@@ -31,6 +32,7 @@ cryptotun2:  remote port\n\
 cryptotun2:  path/seckey\n\
 cryptotun2:  remote pubkey\n\
 cryptotun2:  ifr_name\n\
+cryptotun2:  path/root\n\
 "
 
 main(int argc, char **argv) {
@@ -68,6 +70,7 @@ int n;
 int tunfd;
 int sockfd;
 int updatetaia=0;
+int devurandomfd;
 
 void zeroexit(int signum) {
  bzero(&buffer16,2048);
@@ -114,9 +117,7 @@ memcpy(&sockb,&recvaddr,sockaddr_len);
 if (((n=open(argv[5],0))<0)||(read(n,longtermsk,32)!=32)||(close(n)<0)) zeroexit(128+errno&255);
 if ((strlen(argv[6])!=64)||(base16_decode(remotelongtermpk,argv[6],64)!=32)) zeroexit(128+errno&255);
 if (crypto_box_beforenm(longtermsharedk,remotelongtermpk,longtermsk)) zeroexit(128+errno&255);
-
 crypto_scalarmult_curve25519_base(longtermpk,longtermsk);
-memcpy(localnonce+16,longtermpk,8);
 memcpy(remotenonce+16,remotelongtermpk,8);
 
 if ((!strlen(argv[7]))||(strlen(argv[7])>=16)) zeroexit(128+errno&255);
@@ -145,6 +146,12 @@ if ((!strlen(argv[7]))||(strlen(argv[7])>=16)) zeroexit(128+errno&255);
  if (ioctl(tunfd,TUNSIFHEAD,&ifr_flag)) zeroexit(128+errno&255);
 #endif
 
+if ((devurandomfd=open("/dev/urandom",O_RDONLY))<0) zeroexit(128+errno&255);
+if (argc>8) {
+ struct passwd *cryptotun = getpwnam("cryptotun");
+ if ((!cryptotun)||(chdir(argv[8]))||((chroot(argv[8]))||(setgid(cryptotun->pw_gid))||(setuid(cryptotun->pw_uid)))) zeroexit(128+errno&255);
+}
+
 struct pollfd fds[2];
 fds[0].events=POLLIN;
 fds[1].events=POLLIN;
@@ -166,7 +173,8 @@ while (1) {
 gettimeofday(&now,utc);
 
 if (now.tv_sec-expiry>=512) {
- if (crypto_box_keypair(shorttermpk,shorttermsk)) zeroexit(128+errno&255);
+ if (read(devurandomfd,shorttermsk,32)<32) zeroexit(128+errno&255);
+ crypto_scalarmult_curve25519_base(shorttermpk,shorttermsk);
  if (crypto_box_beforenm(shorttermsharedk0,remoteshorttermpk,shorttermsk)) zeroexit(128+errno&255);
  expiry=now.tv_sec;
  goto sendupdate;
@@ -177,6 +185,7 @@ sendupdate:
  memcpy(buffer32+32,shorttermpk,32);
  taia_now(localnonce);
  taia_pack(localnonce,localnonce);
+ memcpy(localnonce+16,longtermpk,8);
  if (crypto_box_afternm(buffer16,buffer32,32+32,localnonce,longtermsharedk)) zeroexit(128+errno&255);
  memcpy(buffer32+32,localnonce,16);
  memcpy(buffer32+32+16,buffer16+16,32+16);
@@ -192,7 +201,10 @@ if (fds[0].revents) {
  if (n<16+32+16) goto devread;
 
  memcpy(remotenonce,buffer16+16,16);
- if (memcmp(remotenonce,taia0,16)<1) goto devread;
+ for (i=0;i<16;++i) {
+  if (remotenonce[i]>taia0[i]) break;
+  if (remotenonce[i]<taia0[i]) goto devread;
+ }
  for (i=2048-16;i>-16;i-=16) if (!crypto_verify_16(taiacache+i,remotenonce)) goto devread;
 
  memcpy(buffer16+16,buffer16+16+16,-16+n);
@@ -211,7 +223,10 @@ if (fds[0].revents) {
   updatetaia=0;
  }
 
- if (memcmp(taia0,taiacache,16)<0) memcpy(taia0,taiacache,16);
+ for (i=0;i<16;++i) {
+  if (taiacache[i]<taia0[i]) break;
+  if (taiacache[i]>taia0[i]) { memcpy(taia0,taiacache,16); break; }
+ }
  memcpy(taiacache,taiacache+16,2048-16);
  memcpy(taiacache+2048-16,remotenonce,16);
  ++updatetaia;
@@ -245,6 +260,7 @@ if (fds[1].revents) {
  if ((n=read(tunfd,buffer32+32,1500))<0) zeroexit(128+errno&255);
  taia_now(localnonce);
  taia_pack(localnonce,localnonce);
+ memcpy(localnonce+16,longtermpk,8);
  if (crypto_box_afternm(buffer16,buffer32,32+n,localnonce,shorttermsharedk0)<0) zeroexit(128+errno&255);
  memcpy(buffer32+32,shorttermpk,32);
  memcpy(buffer32+32+32,buffer16+16,n+16);
@@ -252,7 +268,7 @@ if (fds[1].revents) {
  memcpy(buffer32+32,localnonce,16);
  memcpy(buffer32+32+16,buffer16+16,32+n+16+16);
  if (sendto(sockfd,buffer32+32,16+32+n+16+16,0,(struct sockaddr*)&socka,sockaddr_len)==16+32+n+16+16) update=now.tv_sec;
- if ((mobile) && (sendto(sockfd,buffer32+32,16+32+n+16+16,0,(struct sockaddr*)&sockb,sockaddr_len)==16+32+n+16+16)) update=now.tv_sec;
+ if ((mobile)&&(sendto(sockfd,buffer32+32,16+32+n+16+16,0,(struct sockaddr*)&sockb,sockaddr_len)==16+32+n+16+16)) update=now.tv_sec;
 }
 
 poll(fds,2,16384);

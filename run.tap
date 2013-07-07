@@ -13,7 +13,9 @@ export MTU=`cat env/MTU`
 export PROTOCOL=`cat env/PROTOCOL 2>/dev/null` || :
 export USE_PI=`cat env/USE_PI 2>/dev/null` || export USE_PI=''
 [ -z $USE_PI ] && unset USE_PI
+export ROOT=`cat env/ROOT 2>/dev/null` || :
 export IFF_TAP=1
+
 (
   sleep 4
   ip addr add $TAP_ADDR brd $BRD dev $INTERFACE scope link
@@ -29,4 +31,4 @@ export IFF_TAP=1
 
 ignchld=''
 test -x ignchld && ignchld='./ignchld'
-exec $ignchld ./cryptotun$PROTOCOL $LOCALIP $LOCALPORT $REMOTEIP $REMOTEPORT env/SECKEY $PUBKEY $INTERFACE
+exec $ignchld ./cryptotun$PROTOCOL $LOCALIP $LOCALPORT $REMOTEIP $REMOTEPORT env/SECKEY $PUBKEY $INTERFACE $ROOT
