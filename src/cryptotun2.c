@@ -192,7 +192,7 @@ sendupdate:
  memcpy(buffer32+32,localnonce,16);
  memcpy(buffer32+32+16,buffer16+16,32+16);
  sendto(sockfd,buffer32+32,16+32+16,0,(struct sockaddr*)&socka,sockaddr_len);
- if (remotefloat|mobile) sendto(sockfd,buffer32+32,16+32+16,0,(struct sockaddr*)&sockb,sockaddr_len);
+ if ((remotefloat)&&(mobile)) sendto(sockfd,buffer32+32,16+32+16,0,(struct sockaddr*)&sockb,sockaddr_len);
  update=now.tv_sec;
  goto devread;
 }
@@ -272,7 +272,7 @@ if (fds[1].revents) {
  memcpy(buffer32+32,localnonce,16);
  memcpy(buffer32+32+16,buffer16+16,32+n+16+16);
  if (sendto(sockfd,buffer32+32,16+32+n+16+16,0,(struct sockaddr*)&socka,sockaddr_len)==16+32+n+16+16) update=now.tv_sec;
- if ((remotefloat|mobile)&&(sendto(sockfd,buffer32+32,16+32+n+16+16,0,(struct sockaddr*)&sockb,sockaddr_len)==16+32+n+16+16)) update=now.tv_sec;
+ if ((remotefloat)&&(mobile)&&(sendto(sockfd,buffer32+32,16+32+n+16+16,0,(struct sockaddr*)&sockb,sockaddr_len)==16+32+n+16+16)) update=now.tv_sec;
 }
 
 poll(fds,2,16384);
