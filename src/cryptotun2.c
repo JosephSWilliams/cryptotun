@@ -21,7 +21,7 @@
 #include <poll.h>
 #include <pwd.h>
 
-int envnum(char *a) { return atoi(a); }
+int envnum(char *a) { return (getenv(a)) ? atoi(getenv(a)) : 0; }
 
 #define USAGE "\
 cryptotun2: usage:\n\
@@ -71,6 +71,7 @@ int tunfd;
 int sockfd;
 int updatetaia=0;
 int devurandomfd;
+int remotefloat=(!envnum("REMOTE_FLOAT")) ? 1 : 0;
 
 void zeroexit(int signum) {
  bzero(&buffer16,2048);
@@ -118,6 +119,7 @@ if (((n=open(argv[5],0))<0)||(read(n,longtermsk,32)!=32)||(close(n)<0)) zeroexit
 if ((strlen(argv[6])!=64)||(base16_decode(remotelongtermpk,argv[6],64)!=32)) zeroexit(128+errno&255);
 if (crypto_box_beforenm(longtermsharedk,remotelongtermpk,longtermsk)) zeroexit(128+errno&255);
 crypto_scalarmult_curve25519_base(longtermpk,longtermsk);
+if (!crypto_verify_32(longtermpk,remotelongtermpk)) zeroexit(128+errno&255);
 memcpy(remotenonce+16,remotelongtermpk,8);
 
 if ((!strlen(argv[7]))||(strlen(argv[7])>=16)) zeroexit(128+errno&255);
@@ -190,7 +192,7 @@ sendupdate:
  memcpy(buffer32+32,localnonce,16);
  memcpy(buffer32+32+16,buffer16+16,32+16);
  sendto(sockfd,buffer32+32,16+32+16,0,(struct sockaddr*)&socka,sockaddr_len);
- if (mobile) sendto(sockfd,buffer32+32,16+32+16,0,(struct sockaddr*)&sockb,sockaddr_len);
+ if (remotefloat|mobile) sendto(sockfd,buffer32+32,16+32+16,0,(struct sockaddr*)&sockb,sockaddr_len);
  update=now.tv_sec;
  goto devread;
 }
@@ -209,12 +211,14 @@ if (fds[0].revents) {
 
  memcpy(buffer16+16,buffer16+16+16,-16+n);
  if (crypto_box_open_afternm(buffer32,buffer16,16-16+n,remotenonce,longtermsharedk)<0) goto devread;
- if ((memcmp(&socka,&recvaddr,sockaddr_len))&&(memcmp(&sockb,&recvaddr,sockaddr_len))) {
-   memcpy(&socka,&recvaddr,sockaddr_len);
-   mobile=now.tv_sec;
- } else if ((mobile)&&(now.tv_sec-mobile>=64)) {
-  memcpy(&sockb,&socka,sockaddr_len);
-  mobile=0;
+ if (remotefloat) {
+  if ((memcmp(&socka,&recvaddr,sockaddr_len))&&(memcmp(&sockb,&recvaddr,sockaddr_len))) {
+    memcpy(&socka,&recvaddr,sockaddr_len);
+    mobile=now.tv_sec;
+  } else if ((mobile)&&(now.tv_sec-mobile>=64)) {
+   memcpy(&sockb,&socka,sockaddr_len);
+   mobile=0;
+  }
  }
  if (updatetaia==32) {
   memcpy(taia0,taia1,16);
@@ -268,7 +272,7 @@ if (fds[1].revents) {
  memcpy(buffer32+32,localnonce,16);
  memcpy(buffer32+32+16,buffer16+16,32+n+16+16);
  if (sendto(sockfd,buffer32+32,16+32+n+16+16,0,(struct sockaddr*)&socka,sockaddr_len)==16+32+n+16+16) update=now.tv_sec;
- if ((mobile)&&(sendto(sockfd,buffer32+32,16+32+n+16+16,0,(struct sockaddr*)&sockb,sockaddr_len)==16+32+n+16+16)) update=now.tv_sec;
+ if ((remotefloat|mobile)&&(sendto(sockfd,buffer32+32,16+32+n+16+16,0,(struct sockaddr*)&sockb,sockaddr_len)==16+32+n+16+16)) update=now.tv_sec;
 }
 
 poll(fds,2,16384);
