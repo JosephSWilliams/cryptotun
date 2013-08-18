@@ -71,7 +71,7 @@ int tunfd;
 int sockfd;
 int updatetaia=0;
 int devurandomfd;
-int remotefloat=(!envnum("REMOTE_FLOAT")) ? 1 : 0;
+int remotefloat=(!envnum("REMOTE_FLOAT")) ? 0 : 1;
 
 void zeroexit(int signum) {
  bzero(&buffer16,2048);
