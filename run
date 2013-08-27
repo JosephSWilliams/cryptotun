@@ -13,6 +13,10 @@ export MTU=`cat env/MTU`
 export PROTOCOL=`cat env/PROTOCOL 2>/dev/null` || :
 export USE_PI=`cat env/USE_PI 2>/dev/null` || export USE_PI=''
 [ -z $USE_PI ] && unset USE_PI
+export USE_PADDING=`cat env/USE_PADDING 2>/dev/null` || export USE_PADDING=''
+[ -z $USE_PADDING ] && unset USE_PADDING
+export MAX_PAD_LEN=`cat env/MAX_PAD_LEN 2>/dev/null` || export MAX_PAD_LEN
+[ -z $MAX_PAD_LEN ] && unset MAX_PAD_LEN
 export ROOT=`cat env/ROOT 2>/dev/null` || :
 
 ### BC: explicitly set env/REMOTE_FLOAT ###

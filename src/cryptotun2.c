@@ -21,8 +21,6 @@
 #include <poll.h>
 #include <pwd.h>
 
-int envnum(char *a) { return (getenv(a)) ? atoi(getenv(a)) : 0; }
-
 #define USAGE "\
 cryptotun2: usage:\n\
 cryptotun2:  local addr\n\
@@ -34,6 +32,8 @@ cryptotun2:  remote pubkey\n\
 cryptotun2:  ifr_name\n\
 cryptotun2:  path/root\n\
 "
+
+int envnum(char *a) { return (getenv(a)) ? atoi(getenv(a)) : 0; }
 
 main(int argc, char **argv) {
 
@@ -71,7 +71,9 @@ int tunfd;
 int sockfd;
 int updatetaia=0;
 int devurandomfd;
+int usepadding=(!envnum("USE_PADDING")) ? 0 : 1;
 int remotefloat=(!envnum("REMOTE_FLOAT")) ? 0 : 1;
+int maxpadlen=(!envnum("MAX_PAD_LEN")) ? 255 : envnum("MAX_PAD_LEN")&255;
 
 void zeroexit(int signum) {
  bzero(&buffer16,2048);
@@ -199,7 +201,7 @@ sendupdate:
 
 devwrite:
 if (fds[0].revents) {
- if ((n=recvfrom(sockfd,buffer16+16,16+32+1500+16+16,0,(struct sockaddr*)&recvaddr,&sockaddr_len))<0) zeroexit(128+errno&255);
+ if ((n=recvfrom(sockfd,buffer16+16,16+32+1500+255+1+16+16,0,(struct sockaddr*)&recvaddr,&sockaddr_len))<0) zeroexit(128+errno&255);
  if (n<16+32+16) goto devread;
 
  memcpy(remotenonce,buffer16+16,16);
@@ -251,11 +253,13 @@ if (fds[0].revents) {
   bzero(&remoteshorttermpk,32);
   memcpy(shorttermsharedk0,shorttermsharedk1,32);
   if (crypto_box_open_afternm(buffer32,buffer16,16-16-32+n-16,remotenonce,shorttermsharedk1)<0) goto sendupdate;
-  if (write(tunfd,buffer32+32,-16-32+n-16-16)<0) zeroexit(128+errno&255);
+  if (usepadding) n-=buffer32[32-16-32+n-16-16]+1;
+  if ((-16-32+n-16-16>0)&&(write(tunfd,buffer32+32,-16-32+n-16-16)<0)) zeroexit(128+errno&255);
   goto sendupdate;
  }
 
- if (write(tunfd,buffer32+32,-16-32+n-16-16)<0) zeroexit(128+errno&255);
+ if (usepadding) n-=buffer32[32-16-32+n-16-16]+1;
+ if ((-16-32+n-16-16>0)&&(write(tunfd,buffer32+32,-16-32+n-16-16)<0)) zeroexit(128+errno&255);
  update=now.tv_sec;
 }
 
@@ -265,14 +269,19 @@ if (fds[1].revents) {
  taia_now(localnonce);
  taia_pack(localnonce,localnonce);
  memcpy(localnonce+16,longtermpk,8);
- if (crypto_box_afternm(buffer16,buffer32,32+n,localnonce,shorttermsharedk0)<0) zeroexit(128+errno&255);
+ if (usepadding) {
+  i=maxpadlen-n%maxpadlen;
+  if (read(devurandomfd,buffer32+32+n,i)<i) zeroexit(128+errno&255);
+  buffer32[32+n+i]=i;
+ }
+ if (crypto_box_afternm(buffer16,buffer32,32+n+i+usepadding,localnonce,shorttermsharedk0)<0) zeroexit(128+errno&255);
  memcpy(buffer32+32,shorttermpk,32);
- memcpy(buffer32+32+32,buffer16+16,n+16);
- if (crypto_box_afternm(buffer16,buffer32,32+32+n+16,localnonce,longtermsharedk)<0) zeroexit(128+errno&255);
+ memcpy(buffer32+32+32,buffer16+16,n+i+usepadding+16);
+ if (crypto_box_afternm(buffer16,buffer32,32+32+n+i+usepadding+16,localnonce,longtermsharedk)<0) zeroexit(128+errno&255);
  memcpy(buffer32+32,localnonce,16);
- memcpy(buffer32+32+16,buffer16+16,32+n+16+16);
- if (sendto(sockfd,buffer32+32,16+32+n+16+16,0,(struct sockaddr*)&socka,sockaddr_len)==16+32+n+16+16) update=now.tv_sec;
- if ((remotefloat)&&(mobile)&&(sendto(sockfd,buffer32+32,16+32+n+16+16,0,(struct sockaddr*)&sockb,sockaddr_len)==16+32+n+16+16)) update=now.tv_sec;
+ memcpy(buffer32+32+16,buffer16+16,32+n+i+usepadding+16+16);
+ if (sendto(sockfd,buffer32+32,16+32+n+i+usepadding+16+16,0,(struct sockaddr*)&socka,sockaddr_len)==16+32+n+16+16) update=now.tv_sec;
+ if ((remotefloat)&&(mobile)&&(sendto(sockfd,buffer32+32,16+32+n+i+usepadding+16+16,0,(struct sockaddr*)&sockb,sockaddr_len)==16+32+n+16+16)) update=now.tv_sec;
 }
 
 poll(fds,2,16384);
