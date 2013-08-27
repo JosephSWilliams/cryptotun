@@ -253,12 +253,12 @@ if (fds[0].revents) {
   bzero(&remoteshorttermpk,32);
   memcpy(shorttermsharedk0,shorttermsharedk1,32);
   if (crypto_box_open_afternm(buffer32,buffer16,16-16-32+n-16,remotenonce,shorttermsharedk1)<0) goto sendupdate;
-  if (usepadding) n-=buffer32[32-16-32+n-16-16]+1;
+  if (usepadding) n-=buffer32[32-16-32+n-16-16-1]+1;
   if ((-16-32+n-16-16>0)&&(write(tunfd,buffer32+32,-16-32+n-16-16)<0)) zeroexit(128+errno&255);
   goto sendupdate;
  }
 
- if (usepadding) n-=buffer32[32-16-32+n-16-16]+1;
+ if (usepadding) n-=buffer32[32-16-32+n-16-16-1]+1;
  if ((-16-32+n-16-16>0)&&(write(tunfd,buffer32+32,-16-32+n-16-16)<0)) zeroexit(128+errno&255);
  update=now.tv_sec;
 }
