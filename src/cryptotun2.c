@@ -273,7 +273,7 @@ if (fds[1].revents) {
   i=maxpadlen-n%maxpadlen;
   if (read(devurandomfd,buffer32+32+n,i)<i) zeroexit(128+errno&255);
   buffer32[32+n+i]=i;
- }
+ } else i=0;
  if (crypto_box_afternm(buffer16,buffer32,32+n+i+usepadding,localnonce,shorttermsharedk0)<0) zeroexit(128+errno&255);
  memcpy(buffer32+32,shorttermpk,32);
  memcpy(buffer32+32+32,buffer16+16,n+i+usepadding+16);
