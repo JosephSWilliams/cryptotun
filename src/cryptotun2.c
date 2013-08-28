@@ -273,15 +273,16 @@ if (fds[1].revents) {
   i=maxpadlen-n%maxpadlen;
   if (read(devurandomfd,buffer32+32+n,i)<i) zeroexit(128+errno&255);
   buffer32[32+n+i]=i;
- } else i=0;
- if (crypto_box_afternm(buffer16,buffer32,32+n+i+usepadding,localnonce,shorttermsharedk0)<0) zeroexit(128+errno&255);
+  n+=i+1;
+ }
+ if (crypto_box_afternm(buffer16,buffer32,32+n,localnonce,shorttermsharedk0)<0) zeroexit(128+errno&255);
  memcpy(buffer32+32,shorttermpk,32);
- memcpy(buffer32+32+32,buffer16+16,n+i+usepadding+16);
- if (crypto_box_afternm(buffer16,buffer32,32+32+n+i+usepadding+16,localnonce,longtermsharedk)<0) zeroexit(128+errno&255);
+ memcpy(buffer32+32+32,buffer16+16,n+16);
+ if (crypto_box_afternm(buffer16,buffer32,32+32+n+16,localnonce,longtermsharedk)<0) zeroexit(128+errno&255);
  memcpy(buffer32+32,localnonce,16);
- memcpy(buffer32+32+16,buffer16+16,32+n+i+usepadding+16+16);
- if (sendto(sockfd,buffer32+32,16+32+n+i+usepadding+16+16,0,(struct sockaddr*)&socka,sockaddr_len)==16+32+n+16+16) update=now.tv_sec;
- if ((remotefloat)&&(mobile)&&(sendto(sockfd,buffer32+32,16+32+n+i+usepadding+16+16,0,(struct sockaddr*)&sockb,sockaddr_len)==16+32+n+16+16)) update=now.tv_sec;
+ memcpy(buffer32+32+16,buffer16+16,32+n+16+16);
+ if (sendto(sockfd,buffer32+32,16+32+n+16+16,0,(struct sockaddr*)&socka,sockaddr_len)==16+32+n+16+16) update=now.tv_sec;
+ if ((remotefloat)&&(mobile)&&(sendto(sockfd,buffer32+32,16+32+n+16+16,0,(struct sockaddr*)&sockb,sockaddr_len)==16+32+n+16+16)) update=now.tv_sec;
 }
 
 poll(fds,2,16384);
