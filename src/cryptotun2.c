@@ -73,7 +73,7 @@ int updatetaia=0;
 int devurandomfd;
 int usepadding=(!envnum("USE_PADDING")) ? 0 : 1;
 int remotefloat=(!envnum("REMOTE_FLOAT")) ? 0 : 1;
-int maxpadlen=(!envnum("MAX_PAD_LEN")) ? 255 : envnum("MAX_PAD_LEN")&255;
+int maxpadlen=(!(n=envnum("MAX_PAD_LEN"))) ? 255 : n&255;
 
 void zeroexit(int signum) {
  bzero(&buffer16,2048);
